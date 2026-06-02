@@ -16,7 +16,10 @@ struct SettingsView: View {
             }
 
             Section("Output") {
-                Toggle("Keep originals (write .min copies)", isOn: $model.saveCopies)
+                Toggle("Keep originals (back up as .bak)", isOn: $model.keepOriginals)
+                Text("On: the original is copied to name.bak.ext and the optimized image keeps its original name. Off: the file is optimized in place.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

@@ -40,9 +40,9 @@ struct ContentView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Spacer()
-            Toggle("Keep originals", isOn: $model.saveCopies)
+            Toggle("Keep originals", isOn: $model.keepOriginals)
                 .toggleStyle(.switch)
-                .help("Write optimized copies as name.min.ext instead of overwriting in place.")
+                .help("Back up the original as name.bak.ext and save the optimized image under the original name. Off = overwrite in place.")
             Button {
                 model.presentOpenPanel()
             } label: {

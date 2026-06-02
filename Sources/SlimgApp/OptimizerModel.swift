@@ -29,7 +29,9 @@ final class OptimizerModel: ObservableObject {
     @Published var stripMetadata = true
     @Published var keepColorProfile = true
     @Published var recompress = true
-    @Published var saveCopies = false // false = overwrite in place
+    // On (default): back up the original as name.bak.ext and write the
+    // optimized image under the original name. Off: overwrite in place.
+    @Published var keepOriginals = true
 
     static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "gif"]
 
@@ -91,10 +93,10 @@ final class OptimizerModel: ObservableObject {
             keepColorProfile: keepColorProfile,
             recompress: recompress
         )
-        let saveCopies = self.saveCopies
+        let keepOriginals = self.keepOriginals
 
         Task.detached(priority: .userInitiated) {
-            let outcome = Self.run(url: url, options: options, saveCopies: saveCopies)
+            let outcome = Self.run(url: url, options: options, keepOriginals: keepOriginals)
             await MainActor.run { self.apply(outcome, to: itemID) }
         }
     }
@@ -105,7 +107,7 @@ final class OptimizerModel: ObservableObject {
         case failed(String)
     }
 
-    private nonisolated static func run(url: URL, options: OptimizationOptions, saveCopies: Bool) -> Outcome {
+    private nonisolated static func run(url: URL, options: OptimizationOptions, keepOriginals: Bool) -> Outcome {
         guard let data = try? Data(contentsOf: url) else {
             return .failed("Cannot read file")
         }
@@ -116,20 +118,28 @@ final class OptimizerModel: ObservableObject {
         guard result.changed else {
             return .skipped("Already optimal", format: result.format)
         }
-        let dest = saveCopies ? copyURL(for: url) : url
         do {
-            try result.data.write(to: dest, options: .atomic)
+            if keepOriginals {
+                // Preserve the original as name.bak.ext. Never clobber an
+                // existing backup (protects the true original on re-runs).
+                let backup = backupURL(for: url)
+                if !FileManager.default.fileExists(atPath: backup.path) {
+                    try data.write(to: backup, options: .atomic)
+                }
+            }
+            // The optimized image always keeps the original filename.
+            try result.data.write(to: url, options: .atomic)
             return .done(optimizedSize: result.optimizedSize, format: result.format, report: result.report)
         } catch {
             return .failed(error.localizedDescription)
         }
     }
 
-    private nonisolated static func copyURL(for url: URL) -> URL {
+    private nonisolated static func backupURL(for url: URL) -> URL {
         let ext = url.pathExtension
         let base = url.deletingPathExtension().lastPathComponent
         let dir = url.deletingLastPathComponent()
-        let name = ext.isEmpty ? "\(base).min" : "\(base).min.\(ext)"
+        let name = ext.isEmpty ? "\(base).bak" : "\(base).bak.\(ext)"
         return dir.appendingPathComponent(name)
     }
 

@@ -33,7 +33,8 @@ func printUsage() {
 
     OPTIONS:
       --dry-run            Report savings without writing any files.
-      --copy               Write to <name>.min.<ext> instead of overwriting.
+      --backup             Keep the original as <name>.bak.<ext>; write the
+                           optimized image under its original name.
       --report             Print an advanced breakdown of what was removed.
       --keep-metadata      Do not strip EXIF/XMP/IPTC/comments.
       --strip-color        Also strip ICC color profiles (may shift colors).
@@ -47,7 +48,7 @@ func printUsage() {
 }
 
 var dryRun = false
-var copy = false
+var backup = false
 var showReport = false
 var options = OptimizationOptions()
 var files = [String]()
@@ -61,7 +62,7 @@ if args.isEmpty {
 for arg in args {
     switch arg {
     case "--dry-run": dryRun = true
-    case "--copy": copy = true
+    case "--backup", "--copy": backup = true
     case "--report", "-v": showReport = true
     case "--keep-metadata": options.stripMetadata = false
     case "--strip-color": options.keepColorProfile = false
@@ -81,11 +82,11 @@ guard !files.isEmpty else {
     exit(0)
 }
 
-func copyURL(for url: URL) -> URL {
+func backupURL(for url: URL) -> URL {
     let ext = url.pathExtension
     let base = url.deletingPathExtension().lastPathComponent
     let dir = url.deletingLastPathComponent()
-    let name = ext.isEmpty ? "\(base).min" : "\(base).min.\(ext)"
+    let name = ext.isEmpty ? "\(base).bak" : "\(base).bak.\(ext)"
     return dir.appendingPathComponent(name)
 }
 
@@ -124,14 +125,22 @@ for path in files {
         continue
     }
 
-    let dest = copy ? copyURL(for: url) : url
     do {
-        try result.data.write(to: dest)
-        let arrow = copy ? "-> \(dest.lastPathComponent)" : ""
-        print("  ok    \(path) [\(formatTag)] \(formatBytes(result.originalSize)) -> \(formatBytes(result.optimizedSize))  −\(pct) \(arrow)")
+        var note = ""
+        if backup {
+            // Preserve the original as name.bak.ext; never clobber an existing backup.
+            let bak = backupURL(for: url)
+            if !FileManager.default.fileExists(atPath: bak.path) {
+                try data.write(to: bak)
+            }
+            note = "(orig -> \(bak.lastPathComponent))"
+        }
+        // Optimized image always keeps the original filename.
+        try result.data.write(to: url)
+        print("  ok    \(path) [\(formatTag)] \(formatBytes(result.originalSize)) -> \(formatBytes(result.optimizedSize))  −\(pct) \(note)")
         if showReport { printReport(result) }
     } catch {
-        FileHandle.standardError.write(Data("error: cannot write \(dest.path): \(error.localizedDescription)\n".utf8))
+        FileHandle.standardError.write(Data("error: cannot write \(url.path): \(error.localizedDescription)\n".utf8))
         anyError = true
     }
 }
