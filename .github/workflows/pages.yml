@@ -37,6 +37,9 @@ jobs:
       # Generate the web icon exports so the files exist in CI even on a clean
       # checkout (the generator writes them into brand/web/).
       - name: Generate icons & web assets
+        # Non-fatal: the site ships committed assets in site/assets/; this step
+        # only refreshes them, so a rendering hiccup must not block the deploy.
+        continue-on-error: true
         run: swift Scripts/generate-icons.swift
 
       # Copy the web icon exports into the site so the landing page can

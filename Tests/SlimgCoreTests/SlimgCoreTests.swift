@@ -329,7 +329,10 @@ final class SlimgCoreTests: XCTestCase {
         bytes.append(0xF7)                                  // packed: GCT present, size=7 -> 768 bytes
         bytes.append(0x00)                                  // background color index
         bytes.append(0x00)                                  // pixel aspect ratio
-        // (no color table, no image data) -> must bail.
+        // One trailing byte so the file is 14 bytes: this clears the `n > 13`
+        // header guard and actually exercises the global-color-table bounds
+        // check (768-byte GCT claimed, but no table bytes follow).
+        bytes.append(0x2C)                                  // image descriptor introducer
         let data = Data(bytes)
         XCTAssertEqual(Slimg.detectFormat(data), .gif)
         let result = Slimg.optimize(data)
