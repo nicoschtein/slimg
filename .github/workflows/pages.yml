@@ -1,0 +1,77 @@
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "brand/**"
+      - "Scripts/generate-icons.swift"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# Permissions required by the official Pages deploy actions.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment; don't cancel an in-progress deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site artifact
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      # Generate the web icon exports so the files exist in CI even on a clean
+      # checkout (the generator writes them into brand/web/).
+      - name: Generate icons & web assets
+        run: swift Scripts/generate-icons.swift
+
+      # Copy the web icon exports into the site so the landing page can
+      # reference them under assets/icons/.
+      - name: Stage icons into site
+        run: |
+          set -euo pipefail
+          mkdir -p site/assets/icons
+          for f in favicon.svg favicon-32.png favicon-180.png icon-512.png og-image.png; do
+            if [ -f "brand/web/$f" ]; then
+              cp "brand/web/$f" "site/assets/icons/$f"
+              echo "copied $f"
+            else
+              echo "warning: brand/web/$f not found" >&2
+            fi
+          done
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # Upload the whole site directory (preserves site/CNAME = slimg.app and
+      # site/.nojekyll).
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

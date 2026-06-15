@@ -9,6 +9,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            Divider()
 
             ZStack {
                 if model.items.isEmpty {
@@ -19,6 +20,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            Divider()
             footer
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -31,26 +33,29 @@ struct ContentView: View {
     }
 
     private var header: some View {
-        HStack {
-            Image(systemName: "wand.and.stars")
-                .foregroundStyle(.tint)
+        HStack(spacing: 10) {
+            BrandMark.gradient
+                .frame(width: 22, height: 22)
             Text("Slimg")
-                .font(.headline)
+                .font(.title3.weight(.bold))
+                .tracking(-0.3)
             Text("lossless image slimming")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Spacer()
             Toggle("Keep originals", isOn: $model.keepOriginals)
                 .toggleStyle(.switch)
+                .tint(Brand.teal500)
                 .help("Back up the original as name.bak.ext and save the optimized image under the original name. Off = overwrite in place.")
             Button {
                 model.presentOpenPanel()
             } label: {
                 Label("Add Images", systemImage: "plus")
             }
+            .buttonStyle(.brandPrimary)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .background(.bar)
     }
 
@@ -63,22 +68,33 @@ struct ContentView: View {
         .listStyle(.inset)
         .overlay(alignment: .top) {
             if isTargeted {
-                Color.accentColor.opacity(0.08)
-                    .overlay(Text("Drop to add").font(.title3).foregroundStyle(.tint))
+                ZStack {
+                    Brand.gradient(opacity: 0.08)
+                    Label("Drop to add", systemImage: "plus.circle.fill")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Brand.teal500)
+                }
+                .allowsHitTesting(false)
             }
         }
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 8) {
             if model.totalOptimized > 0 {
-                Text("Saved \(ByteFormat.string(model.totalSaved))")
-                    .fontWeight(.semibold)
-                Text(String(format: "(%.1f%%)", model.totalSavedFraction * 100))
-                    .foregroundStyle(.green)
-                Text("·")
+                Text("Saved")
                     .foregroundStyle(.secondary)
+                Text(ByteFormat.string(model.totalSaved))
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                Text(String(format: "(%.1f%%)", model.totalSavedFraction * 100))
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .foregroundStyle(Brand.success)
+                Text("·")
+                    .foregroundStyle(.tertiary)
                 Text("\(ByteFormat.string(model.totalOriginal)) → \(ByteFormat.string(model.totalOptimized))")
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
             } else {
                 Text("Drag images here to strip metadata and extra weight")
@@ -87,6 +103,8 @@ struct ContentView: View {
             Spacer()
             if !model.items.isEmpty {
                 Button("Clear") { model.clear() }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(Brand.teal600)
             }
         }
         .font(.callout)
@@ -100,24 +118,41 @@ private struct DropZone: View {
     let isTargeted: Bool
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "square.and.arrow.down.on.square")
-                .font(.system(size: 52, weight: .light))
-                .foregroundStyle(isTargeted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-            Text("Drop images here")
-                .font(.title2)
-            Text("JPEG · PNG · GIF — pixels untouched, metadata removed")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+        ZStack {
+            // Faint brand watermark behind the prompt.
+            BrandMark.mono(Brand.teal500.opacity(isTargeted ? 0.10 : 0.05))
+                .frame(width: 220, height: 220)
+                .blur(radius: isTargeted ? 0 : 0.5)
+
+            VStack(spacing: 14) {
+                BrandMark.gradient
+                    .frame(width: 56, height: 56)
+                    .opacity(isTargeted ? 1 : 0.9)
+                    .scaleEffect(isTargeted ? 1.04 : 1)
+                Text(isTargeted ? "Drop to slim them" : "Drop images to slim them")
+                    .font(.title2.weight(.semibold))
+                Text("JPEG · PNG · GIF — pixels untouched, metadata removed")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .animation(.easeOut(duration: 0.15), value: isTargeted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(40)
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                .foregroundStyle(isTargeted ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    isTargeted ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(.quaternary),
+                    style: StrokeStyle(lineWidth: 2, dash: [9, 7])
+                )
                 .padding(20)
         )
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(isTargeted ? AnyShapeStyle(Brand.gradient(opacity: 0.05)) : AnyShapeStyle(Color.clear))
+                .padding(20)
+        )
+        .animation(.easeOut(duration: 0.15), value: isTargeted)
     }
 }
 
@@ -128,6 +163,8 @@ private struct ItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             statusIcon
+                .font(.body)
+                .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.url.lastPathComponent)
                     .lineLimit(1)
@@ -140,7 +177,7 @@ private struct ItemRow: View {
             trailing
             reportButton
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
     }
 
     @ViewBuilder private var reportButton: some View {
@@ -151,6 +188,7 @@ private struct ItemRow: View {
                 Image(systemName: "list.bullet.rectangle")
             }
             .buttonStyle(.borderless)
+            .foregroundStyle(Brand.teal600)
             .help("Show what was removed")
             .popover(isPresented: $showReport, arrowEdge: .bottom) {
                 ReportView(item: item, report: report)
@@ -163,11 +201,11 @@ private struct ItemRow: View {
         case .pending, .processing:
             ProgressView().controlSize(.small)
         case .done:
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.success)
         case .skipped:
             Image(systemName: "minus.circle.fill").foregroundStyle(.secondary)
         case .failed:
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.warning)
         }
     }
 
@@ -189,7 +227,7 @@ private struct ItemRow: View {
             Text(String(format: "−%.1f%%", frac * 100))
                 .font(.callout.monospacedDigit())
                 .fontWeight(.semibold)
-                .foregroundStyle(frac > 0 ? .green : .secondary)
+                .foregroundStyle(frac > 0 ? AnyShapeStyle(Brand.success) : AnyShapeStyle(.secondary))
         }
     }
 }
@@ -205,25 +243,26 @@ struct ReportView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Advanced report")
-                    .font(.headline)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    BrandMark.gradient
+                        .frame(width: 16, height: 16)
+                    Text("Advanced report")
+                        .font(.headline)
+                }
                 Text(item.url.lastPathComponent)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 HStack(spacing: 6) {
-                    Text(item.format.rawValue.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(.quaternary, in: Capsule())
+                    BrandPill(text: item.format.rawValue.uppercased(), tinted: true)
                     Text("\(ByteFormat.string(item.originalSize)) → \(ByteFormat.string(item.optimizedSize ?? item.originalSize))")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Text(String(format: "saved %@ (%.1f%%)", ByteFormat.string(saved), fraction * 100))
                         .font(.caption.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Brand.success)
                 }
                 .padding(.top, 2)
             }
@@ -242,11 +281,15 @@ struct ReportView: View {
             .frame(maxHeight: 260)
 
             Divider()
-            Text("Pixels were not modified. This is a lossless change.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(Brand.teal500)
+                Text("Pixels were not modified. This is a lossless change.")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption2)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .frame(width: 340)
     }
@@ -259,7 +302,7 @@ private struct ReportRow: View {
         HStack(spacing: 10) {
             Image(systemName: ReportIcon.symbol(for: item.kind))
                 .frame(width: 18)
-                .foregroundStyle(item.kind == .recompression ? AnyShapeStyle(.blue) : AnyShapeStyle(.orange))
+                .foregroundStyle(item.kind == .recompression ? AnyShapeStyle(Brand.cyan500) : AnyShapeStyle(Brand.warning))
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.label)
                     .font(.callout)
