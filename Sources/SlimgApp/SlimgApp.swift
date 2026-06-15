@@ -8,7 +8,8 @@ struct SlimgApp: App {
         WindowGroup("Slimg") {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 520, minHeight: 460)
+                .frame(minWidth: 560, minHeight: 480)
+                .tint(Brand.teal500)
         }
         .windowResizability(.contentMinSize)
         .commands {
@@ -21,6 +22,7 @@ struct SlimgApp: App {
         Settings {
             SettingsView()
                 .environmentObject(model)
+                .tint(Brand.teal500)
         }
     }
 }

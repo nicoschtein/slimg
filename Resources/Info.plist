@@ -10,6 +10,8 @@
     <string>com.aguara.slimg</string>
     <key>CFBundleExecutable</key>
     <string>Slimg</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -24,6 +26,8 @@
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>© Aguara. Slimg is open source. github.com/nicoschtein/slimg</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>

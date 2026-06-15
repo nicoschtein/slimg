@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an idea or improvement for Slimg.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Slimg is deliberately **lossless** — it will never trade pixel fidelity for
+        size. Feature ideas that keep output byte-identical are most welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The use case or pain point behind the request.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like Slimg to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you've thought about, if any.
