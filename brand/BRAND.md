@@ -181,7 +181,7 @@ These exact names/paths are a contract between the app, icon, CI, site and docs:
   `.github/workflows/pages.yml` (deploy `site/` to GitHub Pages).
 - **Release asset names** (what the site's download button links to):
   - `Slimg.dmg` — universal (arm64 + x86_64) drag-to-install app.
-  - `slimg-cli-macos.tar.gz` — universal CLI binary + man/readme.
+  - `slimg-cli-macos.tar.gz` — universal CLI binary + README + LICENSE.
   - Download landing URL: `https://github.com/nicoschtein/slimg/releases/latest`.
 - **Custom domain:** `slimg.app` (GitHub Pages `CNAME` = `slimg.app`).
 - **Versioning:** semver; release tags are `vX.Y.Z`; the app's
