@@ -72,10 +72,25 @@ final class OptimizerModel: ObservableObject {
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return [] }
         if isDir.boolValue {
-            guard let en = fm.enumerator(at: url, includingPropertiesForKeys: nil) else { return [] }
-            return en.compactMap { $0 as? URL }.filter { isSupported($0) }
+            // Skip hidden files and don't descend into packages (.app/.photoslibrary
+            // etc.). enumerator(at:) does not follow symlinked directories, and we
+            // additionally skip any symlinked file found during recursive expansion
+            // so a symlink embedded in a dropped folder can never cause us to write
+            // through it into an arbitrary location. A symlink the user *explicitly*
+            // selects is still honored (handled by the non-directory branch below).
+            let keys: [URLResourceKey] = [.isSymbolicLinkKey]
+            guard let en = fm.enumerator(
+                at: url,
+                includingPropertiesForKeys: keys,
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            ) else { return [] }
+            return en.compactMap { $0 as? URL }.filter { isSupported($0) && !isSymlink($0) }
         }
         return isSupported(url) ? [url] : []
+    }
+
+    private func isSymlink(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true
     }
 
     private func isSupported(_ url: URL) -> Bool {

@@ -131,12 +131,13 @@ for path in files {
             // Preserve the original as name.bak.ext; never clobber an existing backup.
             let bak = backupURL(for: url)
             if !FileManager.default.fileExists(atPath: bak.path) {
-                try data.write(to: bak)
+                try data.write(to: bak, options: .atomic)
             }
             note = "(orig -> \(bak.lastPathComponent))"
         }
-        // Optimized image always keeps the original filename.
-        try result.data.write(to: url)
+        // Optimized image always keeps the original filename. Atomic write so a
+        // crash mid-write can never leave a half-written / corrupted original.
+        try result.data.write(to: url, options: .atomic)
         print("  ok    \(path) [\(formatTag)] \(formatBytes(result.originalSize)) -> \(formatBytes(result.optimizedSize))  −\(pct) \(note)")
         if showReport { printReport(result) }
     } catch {
