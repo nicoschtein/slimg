@@ -51,6 +51,16 @@ BIN_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 BIN="$BIN_DIR/SlimgApp"
 [ -f "$BIN" ] || { echo "error: build product not found at $BIN"; exit 1; }
 
+# For a universal build, fail fast if the product isn't actually a fat binary
+# (guards against --show-bin-path resolving to a single-arch directory).
+if [ "$UNIVERSAL" = "1" ]; then
+    ARCHS="$(lipo -archs "$BIN" 2>/dev/null || true)"
+    case "$ARCHS" in
+        *arm64*x86_64*|*x86_64*arm64*) echo "Verified universal binary: $ARCHS" ;;
+        *) echo "error: expected a universal (arm64 + x86_64) binary at $BIN, got: '$ARCHS'"; exit 1 ;;
+    esac
+fi
+
 # --- Assemble bundle ---------------------------------------------------------
 echo "Assembling $APP…"
 rm -rf "$APP"
@@ -69,11 +79,17 @@ fi
 # Stamp the version into the *bundled* plist only (never the committed source).
 if [ -n "${SLIMG_VERSION:-}" ]; then
     PLIST="$APP/Contents/Info.plist"
-    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SLIMG_VERSION" "$PLIST"
-    # CFBundleVersion must be a monotonic build string; reuse the version if it's
-    # numeric-ish, else fall back to the existing value.
-    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $SLIMG_VERSION" "$PLIST" 2>/dev/null || true
-    echo "Stamped version $SLIMG_VERSION into bundled Info.plist"
+    # CFBundleShortVersionString must be a dotted numeric string (x[.y[.z]]).
+    # Strip any pre-release/build suffix (e.g. "1.2.3-dev" -> "1.2.3") and fall
+    # back to 0.0.0 for anything non-numeric, so the bundle stays valid for
+    # Gatekeeper / notarization.
+    SHORT_VERSION="${SLIMG_VERSION%%-*}"
+    case "$SHORT_VERSION" in
+        ''|*[!0-9.]*) SHORT_VERSION="0.0.0" ;;
+    esac
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT_VERSION" "$PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $SHORT_VERSION" "$PLIST" 2>/dev/null || true
+    echo "Stamped version $SHORT_VERSION (from '$SLIMG_VERSION') into bundled Info.plist"
 fi
 
 # --- Code signing ------------------------------------------------------------
@@ -81,7 +97,7 @@ fi
 # bundle is notarization-ready; otherwise fall back to an ad-hoc signature so
 # Gatekeeper lets it launch locally. Release notarization is handled by CI.
 if [ -n "${SLIMG_SIGN_IDENTITY:-}" ]; then
-    echo "Signing with identity: $SLIMG_SIGN_IDENTITY"
+    echo "Signing with a Developer ID identity (hardened runtime)…"
     codesign --force --deep --options runtime --timestamp \
         --sign "$SLIMG_SIGN_IDENTITY" "$APP"
 else

@@ -62,8 +62,11 @@ jobs:
       # Generate the app icon (.icns) and web assets before packaging so the
       # bundle carries the proper icon.
       # ---------------------------------------------------------------------
-      - name: Generate icons
-        run: swift Scripts/generate-icons.swift
+      # Refresh the icon/web assets, but non-fatal: a valid AppIcon.icns is
+      # committed and build-app.sh embeds it, so a headless rendering/iconutil
+      # hiccup must never abort a release.
+      - name: Generate icons (refresh; non-fatal)
+        run: swift Scripts/generate-icons.swift || echo "icon generation failed; using committed Resources/AppIcon.icns"
 
       # ---------------------------------------------------------------------
       # Optional code-signing identity import.
@@ -246,6 +249,9 @@ jobs:
           name: Slimg ${{ steps.meta.outputs.version }}
           generate_release_notes: true
           fail_on_unmatched_files: true
+          # Manual workflow_dispatch runs (not a real tag) publish only as a
+          # draft so dev/test builds never create a public release or tag.
+          draft: ${{ github.ref_type != 'tag' }}
           files: |
             Slimg.dmg
             Slimg.dmg.sha256

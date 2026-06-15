@@ -309,7 +309,7 @@
 
           <ul class="flags">
             <li><code>--dry-run</code><span>Preview savings without writing anything.</span></li>
-            <li><code>--backup</code><span>Keep originals as <code>name.bak.ext</code> (default).</span></li>
+            <li><code>--backup</code><span>Keep the original as <code>name.bak.ext</code> (off by default — the CLI optimizes in place unless you pass this).</span></li>
             <li><code>--report</code><span>Print the per-file advanced report.</span></li>
             <li><code>--keep-metadata</code><span>Slim without stripping metadata.</span></li>
             <li><code>--strip-color</code><span>Also drop the ICC color profile.</span></li>
@@ -320,7 +320,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Download the CLI
           </a>
-          <p class="hero-meta">Ships as <code>slimg-cli-macos.tar.gz</code> — universal binary, man page included.</p>
+          <p class="hero-meta">Ships as <code>slimg-cli-macos.tar.gz</code> — a universal binary, with README and LICENSE.</p>
         </div>
 
         <div class="terminal" role="img" aria-label="Example: running slimg --report on photo.jpg shows it removed EXIF, XMP and a thumbnail, then re-deflated the file to save 38 percent — with pixels unchanged.">
@@ -332,7 +332,7 @@
   <span class="t-dim">removed</span>  XMP packet          <span class="t-dim">94 KB</span>
   <span class="t-dim">removed</span>  embedded thumbnail  <span class="t-dim">21 KB</span>
   <span class="t-dim">kept</span>     ICC color profile  <span class="t-dim">3.1 KB</span>
-  <span class="t-dim">repacked</span> JPEG, lossless
+  <span class="t-dim">untouched</span> JPEG scan data — lossless
 
 <span class="t-ok">✓</span> pixels unchanged · backup saved as <span class="t-dim">photo.bak.jpg</span>
 <span class="t-prompt">$</span> <span class="t-cur">▍</span></code></pre>
@@ -367,7 +367,7 @@
           </details>
           <details>
             <summary>Does it keep my originals?</summary>
-            <p>Yes, by default. Each original is preserved alongside the result as <code>name.bak.ext</code>. You can turn this off with <code>--backup</code> in the CLI if you'd rather not keep backups.</p>
+            <p>Yes. In the app, each original is preserved alongside the result as <code>name.bak.ext</code> by default (an existing backup is never overwritten). The <code>slimg</code> CLI optimizes in place by default — pass <code>--backup</code> when you want it to keep the <code>name.bak.ext</code> copy too.</p>
           </details>
           <details>
             <summary>What about color profiles?</summary>
@@ -412,11 +412,17 @@
       <div class="footer-brand">
         <a class="brand" href="#top" aria-label="Slimg home">
           <svg class="brand-mark" width="24" height="24" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-            <g fill="none" stroke="url(#navGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="footerGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#2DD4BF"/>
+                <stop offset="1" stop-color="#06B6D4"/>
+              </linearGradient>
+            </defs>
+            <g fill="none" stroke="url(#footerGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="26,28 40,50 26,72"/>
               <polyline points="74,28 60,50 74,72"/>
             </g>
-            <rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="url(#navGrad)"/>
+            <rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="url(#footerGrad)"/>
           </svg>
           <span class="brand-word">slimg</span>
         </a>
@@ -433,7 +439,7 @@
         <div class="footer-col">
           <h4>More</h4>
           <a href="https://github.com/nicoschtein/slimg/blob/main/LICENSE" rel="noopener">License (MIT)</a>
-          <a href="https://github.com/nicoschtein/slimg#roadmap" rel="noopener">Roadmap</a>
+          <a href="https://github.com/nicoschtein/slimg/blob/main/ROADMAP.md" rel="noopener">Roadmap</a>
           <a href="#features">Features</a>
         </div>
       </nav>
