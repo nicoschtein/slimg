@@ -62,7 +62,7 @@ if [ "$UNIVERSAL" = "1" ]; then
 fi
 
 # --- Assemble bundle ---------------------------------------------------------
-echo "Assembling $APP…"
+echo "Assembling ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Slimg"

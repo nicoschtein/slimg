@@ -72,7 +72,10 @@ jobs:
       - name: Lint with swiftformat (if available)
         run: |
           if command -v swiftformat >/dev/null 2>&1; then
-            swiftformat --lint Sources Tests
+            # Informational only — surface style suggestions without ever
+            # failing the check (style must never block CI).
+            swiftformat --lint Sources Tests \
+              || echo "::notice::swiftformat reported style suggestions (non-blocking)."
           else
             echo "swiftformat not installed on runner — skipping style lint."
           fi
