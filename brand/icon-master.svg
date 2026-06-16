@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Slimg app icon">
+  <defs>
+    <linearGradient id="slimgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <!-- soft top light for depth -->
+    <linearGradient id="topLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <!-- NOTE: master uses a rounded rect; the icon generator bakes the true
+         macOS continuous-corner squircle for the rasterized .icns. -->
+    <clipPath id="tile">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#slimgGrad)"/>
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#topLight)"/>
+  </g>
+
+  <!-- The "squeeze" mark: >  |  <  -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="92" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="300,330 410,512 300,694"/>
+    <polyline points="724,330 614,512 724,694"/>
+  </g>
+  <rect x="466" y="356" width="92" height="312" rx="46" fill="#FFFFFF"/>
+</svg>

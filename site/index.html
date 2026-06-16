@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Slimg — Lossless image optimizer for macOS</title>
+  <meta name="description" content="Slim your images. Lose nothing. Slimg is a truly lossless image optimizer for macOS — it strips metadata and re-packs JPEG, PNG & GIF without changing a single pixel. 100% on-device, open source, free.">
+  <link rel="canonical" href="https://slimg.app/">
+  <meta name="theme-color" content="#0A0F1A">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/favicon-180.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Slimg">
+  <meta property="og:title" content="Slimg — Lossless image optimizer for macOS">
+  <meta property="og:description" content="Slim your images. Lose nothing. A truly lossless optimizer for JPEG, PNG & GIF that never changes a pixel. 100% on-device, open source.">
+  <meta property="og:url" content="https://slimg.app/">
+  <meta property="og:image" content="https://slimg.app/assets/icons/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Slimg — lossless image optimizer for macOS">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Slimg — Lossless image optimizer for macOS">
+  <meta name="twitter:description" content="Slim your images. Lose nothing. A truly lossless optimizer that never changes a pixel. 100% on-device, open source.">
+  <meta name="twitter:image" content="https://slimg.app/assets/icons/og-image.png">
+
+  <!-- Inter (graceful: system fallback if it fails) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="top">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="Slimg home">
+        <svg class="brand-mark" width="28" height="28" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2DD4BF"/>
+              <stop offset="1" stop-color="#06B6D4"/>
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#navGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="26,28 40,50 26,72"/>
+            <polyline points="74,28 60,50 74,72"/>
+          </g>
+          <rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="url(#navGrad)"/>
+        </svg>
+        <span class="brand-word">slimg</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#cli">CLI</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/nicoschtein/slimg" rel="noopener">GitHub</a>
+      </nav>
+
+      <a class="btn btn-primary btn-sm nav-cta" href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">Download</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow">Lossless image optimizer for macOS</span>
+          <h1 class="hero-title">Slim your images.<br><span class="grad-text">Lose nothing.</span></h1>
+          <p class="hero-sub">Slimg strips metadata and extra weight from your JPEG, PNG and GIF files — and re-packs them losslessly. The output decodes byte-for-byte identical to the original. Never a pixel changed.</p>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Download for macOS
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/nicoschtein/slimg" rel="noopener">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016.01 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="hero-meta">macOS 13+ · Apple Silicon &amp; Intel · Free &amp; open source</p>
+        </div>
+
+        <!-- Visual: app drop-zone mock + before→after bar -->
+        <div class="hero-visual" aria-hidden="true">
+          <div class="app-window">
+            <div class="app-titlebar">
+              <span class="traffic"><i class="tl-r"></i><i class="tl-y"></i><i class="tl-g"></i></span>
+              <span class="app-title">slimg</span>
+            </div>
+            <div class="app-body">
+              <div class="dropzone">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7 9m5-5l5 5M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <p class="dz-title">Drop images to slim</p>
+                <p class="dz-sub">JPEG · PNG · GIF</p>
+              </div>
+
+              <ul class="result-list">
+                <li class="result-row">
+                  <span class="thumb thumb-jpg">JPG</span>
+                  <span class="file">
+                    <span class="fname">beach-sunset.jpg</span>
+                    <span class="meter"><i class="meter-fill js-bar" style="--to:64%"></i></span>
+                  </span>
+                  <span class="saved">−36%</span>
+                </li>
+                <li class="result-row">
+                  <span class="thumb thumb-png">PNG</span>
+                  <span class="file">
+                    <span class="fname">app-screenshot.png</span>
+                    <span class="meter"><i class="meter-fill js-bar" style="--to:78%"></i></span>
+                  </span>
+                  <span class="saved">−22%</span>
+                </li>
+                <li class="result-row">
+                  <span class="thumb thumb-gif">GIF</span>
+                  <span class="file">
+                    <span class="fname">loop.gif</span>
+                    <span class="meter"><i class="meter-fill js-bar" style="--to:88%"></i></span>
+                  </span>
+                  <span class="saved">−12%</span>
+                </li>
+              </ul>
+
+              <div class="app-foot">
+                <span class="dot-ok"></span>
+                <span>3 files · 1.84 MB saved · pixels unchanged</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRUST STRIP ============ -->
+    <section class="trust" aria-label="Why Slimg">
+      <div class="container trust-grid">
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p><strong>Private by design</strong> — your images never leave your Mac.</p>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7C20 16.5 16.3 19 12 19s-8-2.5-9.5-7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <p><strong>Truly lossless</strong> — pixels never change. Output is byte-identical.</p>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18l-6-6 6-6M15 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p><strong>Open source &amp; auditable</strong> — MIT licensed, no hidden behaviour.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="section" id="features">
+      <div class="container">
+        <header class="section-head">
+          <span class="kicker">Features</span>
+          <h2>Built to do exactly one thing, honestly.</h2>
+          <p class="lede">No "visually lossless" hand-waving. Slimg removes only what doesn't affect a single pixel, and tells you precisely what it touched.</p>
+        </header>
+
+        <div class="cards">
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8l4 4-4 4M20 16l-4-4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="11" y="4" width="2.2" height="16" rx="1.1" fill="currentColor"/></svg>
+            </span>
+            <h3>Truly lossless</h3>
+            <p>Re-deflates PNG image data at zlib level 9 and drops only non-pixel bytes. Re-decode the output and you get byte-identical pixels — guaranteed never larger than the input.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <h3>Private by design</h3>
+            <p>100% on-device. No uploads, no servers, no accounts, no telemetry. Slimg works fully offline — your photos and screenshots stay on your machine.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>Native &amp; fast</h3>
+            <p>A small, pure-Swift app and CLI. No Electron, no bundled third-party binaries, no background daemons. Universal binary for Apple Silicon and Intel.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="18.5" cy="19" r="2.3" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+            <h3>Transparent reports</h3>
+            <p>The advanced report shows exactly what was removed — EXIF, XMP, IPTC, comments, timestamps, re-deflated data — and how many bytes each item saved, per file.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>Metadata, gone</h3>
+            <p>Strips EXIF, XMP, IPTC, comments and timestamps that bloat files and leak location and device data. ICC color profiles are kept by default, so colors stay true.</p>
+          </article>
+
+          <article class="card">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l2.5 2.5L7 14M12 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>App &amp; CLI</h3>
+            <p>Drag-and-drop in the SwiftUI app, or script it with the <code>slimg</code> command-line tool. Same lossless engine, dry-run mode, and per-file reports either way.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="section section-alt" id="how">
+      <div class="container">
+        <header class="section-head">
+          <span class="kicker">How it works</span>
+          <h2>Three steps. Zero surprises.</h2>
+          <p class="lede">Drop files in, and Slimg shows a per-file advanced report of exactly what it removed and how much each step saved.</p>
+        </header>
+
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <h3>Drop your images</h3>
+            <p>Drag JPEG, PNG or GIF files onto the app — single shots or whole folders. Or point the CLI at them.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <h3>Slimg slims, losslessly</h3>
+            <p>It strips metadata segments and re-deflates PNG image data at zlib level 9 — without ever touching a pixel.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <h3>Smaller files, identical pixels</h3>
+            <p>You get lighter files and a report of every byte saved. Originals are kept as <code>name.bak.ext</code> by default.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ LOSSLESS VS LOSSY ============ -->
+    <section class="section" id="lossless">
+      <div class="container">
+        <header class="section-head">
+          <span class="kicker">Lossless vs lossy</span>
+          <h2>The honest difference from TinyPNG.</h2>
+          <p class="lede">Both kinds of tool are useful — they just make different promises. Here's the distinction, straight.</p>
+        </header>
+
+        <div class="compare">
+          <article class="compare-col compare-win">
+            <header>
+              <h3>Slimg — truly lossless</h3>
+              <p class="compare-tag">Pixels guaranteed unchanged</p>
+            </header>
+            <ul class="ticks">
+              <li>Re-decoded output is <strong>byte-for-byte identical</strong> to the original.</li>
+              <li>Removes metadata and re-packs the same pixels more efficiently.</li>
+              <li>Output is <strong>never larger</strong> than the input.</li>
+              <li>Runs entirely on your Mac — nothing is uploaded.</li>
+              <li>Best for archives, design source files, screenshots, and anything you can't risk degrading.</li>
+            </ul>
+          </article>
+
+          <article class="compare-col">
+            <header>
+              <h3>Lossy tools (TinyPNG &amp; co.)</h3>
+              <p class="compare-tag compare-tag-muted">"Visually lossless" — pixels do change</p>
+            </header>
+            <ul class="ticks ticks-muted">
+              <li>Re-encode pixels and discard color detail to shrink harder.</li>
+              <li>Can reach smaller sizes — by altering the actual image data.</li>
+              <li>Quality loss accumulates if you re-process the same file.</li>
+              <li>Many run in the cloud, so images are uploaded to a server.</li>
+              <li>Best when maximum size reduction matters more than exact fidelity.</li>
+            </ul>
+          </article>
+        </div>
+        <p class="compare-note">If you need the absolute smallest file and a little quality loss is fine, a lossy tool wins. If "identical pixels" is non-negotiable, that's Slimg.</p>
+      </div>
+    </section>
+
+    <!-- ============ CLI ============ -->
+    <section class="section section-dark" id="cli">
+      <div class="container cli-grid">
+        <div class="cli-copy">
+          <span class="kicker kicker-light">Command line</span>
+          <h2>For the terminal too.</h2>
+          <p class="lede lede-light">The <code>slimg</code> CLI runs the same lossless engine. Script it across folders, wire it into a build, or just check what a file is carrying with <code>--report</code>.</p>
+
+          <ul class="flags">
+            <li><code>--dry-run</code><span>Preview savings without writing anything.</span></li>
+            <li><code>--backup</code><span>Keep the original as <code>name.bak.ext</code> (off by default — the CLI optimizes in place unless you pass this).</span></li>
+            <li><code>--report</code><span>Print the per-file advanced report.</span></li>
+            <li><code>--keep-metadata</code><span>Slim without stripping metadata.</span></li>
+            <li><code>--strip-color</code><span>Also drop the ICC color profile.</span></li>
+            <li><code>--no-recompress</code><span>Skip PNG re-deflation.</span></li>
+          </ul>
+
+          <a class="btn btn-primary" href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download the CLI
+          </a>
+          <p class="hero-meta">Ships as <code>slimg-cli-macos.tar.gz</code> — a universal binary, with README and LICENSE.</p>
+        </div>
+
+        <div class="terminal" role="img" aria-label="Example: running slimg --report on photo.jpg shows it removed EXIF, XMP and a thumbnail, then re-deflated the file to save 38 percent — with pixels unchanged.">
+          <div class="term-bar"><span class="traffic"><i class="tl-r"></i><i class="tl-y"></i><i class="tl-g"></i></span><span class="term-title">zsh — slimg</span></div>
+          <pre class="term-body"><code><span class="t-prompt">$</span> <span class="t-cmd">slimg --report photo.jpg</span>
+
+<span class="t-dim">photo.jpg</span>  <span class="t-ok">2.41 MB → 1.49 MB</span>  <span class="t-save">(−38.1%)</span>
+  <span class="t-dim">removed</span>  EXIF (APP1)        <span class="t-dim">812 KB</span>
+  <span class="t-dim">removed</span>  XMP packet          <span class="t-dim">94 KB</span>
+  <span class="t-dim">removed</span>  embedded thumbnail  <span class="t-dim">21 KB</span>
+  <span class="t-dim">kept</span>     ICC color profile  <span class="t-dim">3.1 KB</span>
+  <span class="t-dim">untouched</span> JPEG scan data — lossless
+
+<span class="t-ok">✓</span> pixels unchanged · backup saved as <span class="t-dim">photo.bak.jpg</span>
+<span class="t-prompt">$</span> <span class="t-cur">▍</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section section-alt" id="faq">
+      <div class="container container-narrow">
+        <header class="section-head">
+          <span class="kicker">FAQ</span>
+          <h2>Questions, answered plainly.</h2>
+        </header>
+
+        <div class="faq">
+          <details>
+            <summary>Is it really lossless?</summary>
+            <p>Yes — in the strict sense. Slimg never re-encodes your pixels. It removes metadata and re-deflates PNG image data at zlib level 9, both of which leave the decoded image byte-for-byte identical to the original. This is not the "visually lossless" claim that lossy tools make.</p>
+          </details>
+          <details>
+            <summary>Does it upload my images anywhere?</summary>
+            <p>No. Slimg is 100% on-device. There are no servers, no accounts, no telemetry, and it works fully offline. Your images never leave your Mac.</p>
+          </details>
+          <details>
+            <summary>Which formats are supported?</summary>
+            <p>JPEG, PNG and GIF. Slimg strips metadata (EXIF, XMP, IPTC, comments, timestamps) across formats, and additionally re-deflates PNG image data losslessly.</p>
+          </details>
+          <details>
+            <summary>Can a file come out bigger?</summary>
+            <p>Never. If Slimg can't make a file smaller without changing pixels, it leaves it as-is. The output is guaranteed to be no larger than the input.</p>
+          </details>
+          <details>
+            <summary>Does it keep my originals?</summary>
+            <p>Yes. In the app, each original is preserved alongside the result as <code>name.bak.ext</code> by default (an existing backup is never overwritten). The <code>slimg</code> CLI optimizes in place by default — pass <code>--backup</code> when you want it to keep the <code>name.bak.ext</code> copy too.</p>
+          </details>
+          <details>
+            <summary>What about color profiles?</summary>
+            <p>ICC color profiles are kept by default so your colors render correctly. If you specifically want them gone, the CLI's <code>--strip-color</code> flag removes them too.</p>
+          </details>
+          <details>
+            <summary>Is it free and open source?</summary>
+            <p>Yes. Slimg is free and MIT-licensed. The full source is on <a href="https://github.com/nicoschtein/slimg" rel="noopener">GitHub</a>, so you can audit exactly what it does.</p>
+          </details>
+          <details>
+            <summary>Does it run on Intel Macs?</summary>
+            <p>Yes. Slimg ships as a universal binary for both Apple Silicon and Intel, and requires macOS 13 or later.</p>
+          </details>
+          <details>
+            <summary>How is it different from TinyPNG or ImageOptim?</summary>
+            <p>TinyPNG is a lossy, cloud-based service — it changes pixels and uploads your images. Slimg is strictly lossless and entirely on-device. ImageOptim is a great local tool with both lossless and lossy modes; Slimg focuses purely on the lossless path with a transparent per-file report of exactly what it removed.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DOWNLOAD CTA ============ -->
+    <section class="section cta-band" id="download">
+      <div class="container cta-inner">
+        <h2>Slim your images. Lose nothing.</h2>
+        <p class="lede lede-light">Free, open source, and 100% on your Mac.</p>
+        <div class="hero-cta hero-cta-center">
+          <a class="btn btn-primary" href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download for macOS
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/nicoschtein/slimg" rel="noopener">View on GitHub</a>
+        </div>
+        <p class="hero-meta">macOS 13+ · Apple Silicon &amp; Intel · MIT licensed</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="Slimg home">
+          <svg class="brand-mark" width="24" height="24" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="footerGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#2DD4BF"/>
+                <stop offset="1" stop-color="#06B6D4"/>
+              </linearGradient>
+            </defs>
+            <g fill="none" stroke="url(#footerGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="26,28 40,50 26,72"/>
+              <polyline points="74,28 60,50 74,72"/>
+            </g>
+            <rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="url(#footerGrad)"/>
+          </svg>
+          <span class="brand-word">slimg</span>
+        </a>
+        <p class="footer-tag">Lossless image optimization for macOS — strips metadata and extra weight, never a pixel.</p>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer">
+        <div class="footer-col">
+          <h4>Project</h4>
+          <a href="https://github.com/nicoschtein/slimg" rel="noopener">GitHub</a>
+          <a href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">Releases</a>
+          <a href="https://github.com/nicoschtein/slimg/issues" rel="noopener">Issues</a>
+        </div>
+        <div class="footer-col">
+          <h4>More</h4>
+          <a href="https://github.com/nicoschtein/slimg/blob/main/LICENSE" rel="noopener">License (MIT)</a>
+          <a href="https://github.com/nicoschtein/slimg/blob/main/ROADMAP.md" rel="noopener">Roadmap</a>
+          <a href="#features">Features</a>
+        </div>
+      </nav>
+    </div>
+    <div class="container footer-bottom">
+      <span>Made for macOS · © <span id="year">2026</span> Slimg</span>
+      <span>Open source under the MIT license</span>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
