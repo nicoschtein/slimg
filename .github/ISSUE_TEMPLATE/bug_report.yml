@@ -1,0 +1,49 @@
+name: Bug report
+description: Report something that isn't working as expected in Slimg.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Slimg. Please remember: Slimg is **losslessly**
+        optimizing — output should decode byte-for-byte identically to the input.
+        If you hit a case where it doesn't, that's a serious bug; please include the
+        image if you can.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I optimize X, Slimg does Y, but I expected Z.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce it? CLI command or app steps.
+      placeholder: |
+        1. Run `slimg ...`
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Slimg version
+      description: From `slimg --version` or the app's About window.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version & chip
+      placeholder: "macOS 14.5, Apple M2"
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Logs, screenshots, or a sample image (if it's safe to share).

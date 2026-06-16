@@ -193,6 +193,153 @@ final class SlimgCoreTests: XCTestCase {
         XCTAssertEqual(original, inflated)
     }
 
+    /// A large all-zero payload compresses ~1000:1. Re-inflating it must succeed
+    /// when under the bomb ceiling and round-trip exactly. This guards against a
+    /// regression where the windowed inflate loop drops or duplicates bytes.
+    func testZlibInflatesHighlyCompressibleStream() throws {
+        let original = [UInt8](repeating: 0, count: 4_000_000) // 4 MB of zeros
+        let deflated = try XCTUnwrap(Zlib.deflate(original, level: 9))
+        XCTAssertLessThan(deflated.count, 50_000, "zeros should compress massively")
+        let inflated = try XCTUnwrap(Zlib.inflate(deflated))
+        XCTAssertEqual(inflated.count, original.count)
+        XCTAssertEqual(inflated, original)
+    }
+
+    /// Decompression-bomb defense: a tiny crafted zlib stream that inflates past
+    /// the shim's ceiling (512 MiB) must be REJECTED (nil), not allowed to grow
+    /// the output buffer to gigabytes and OOM the process. We build it by
+    /// deflating ~600 MB of zeros (a few hundred KB compressed) and asserting
+    /// inflate refuses it.
+    func testZlibRejectsDecompressionBomb() throws {
+        // 600 MiB of zeros -> a few hundred KB of zlib stream, but inflates past
+        // the 512 MiB ceiling, so the shim must return nil rather than OOM.
+        let huge = [UInt8](repeating: 0, count: 600 * 1024 * 1024)
+        let deflated = try XCTUnwrap(Zlib.deflate(huge, level: 9))
+        XCTAssertLessThan(deflated.count, 5 * 1024 * 1024, "the bomb payload itself must be small")
+        let inflated = Zlib.inflate(deflated)
+        XCTAssertNil(inflated, "inflate must refuse to expand past the bomb ceiling")
+    }
+
+    /// Inflating arbitrary/garbage bytes must fail cleanly (nil), never crash.
+    func testZlibInflateGarbageFailsCleanly() {
+        XCTAssertNil(Zlib.inflate([]))
+        XCTAssertNil(Zlib.inflate([0x00]))
+        XCTAssertNil(Zlib.inflate([0xFF, 0xFF, 0xFF, 0xFF]))
+        XCTAssertNil(Zlib.inflate(Array("not a zlib stream at all".utf8)))
+        // Valid zlib header (0x78 0x9C) followed by junk.
+        XCTAssertNil(Zlib.inflate([0x78, 0x9C, 0xDE, 0xAD, 0xBE, 0xEF]))
+    }
+
+    /// Truncated zlib stream (valid prefix, cut short) must fail cleanly.
+    func testZlibInflateTruncatedStreamFailsCleanly() throws {
+        let original: [UInt8] = (0..<5000).map { UInt8(($0 * 31 + 7) & 0xFF) }
+        let deflated = try XCTUnwrap(Zlib.deflate(original, level: 9))
+        XCTAssertGreaterThan(deflated.count, 10)
+        let truncated = Array(deflated.prefix(deflated.count - 5))
+        XCTAssertNil(Zlib.inflate(truncated), "truncated stream must not be accepted")
+    }
+
+    // MARK: - Fuzz / malformed-input safety
+    //
+    // These assert the optimizers never crash, never read out of bounds, and
+    // always fall back to the original bytes when the input is malformed.
+    // (A crash or OOB read here would be a memory-safety vulnerability since
+    //  the input is an untrusted image file.)
+
+    /// Random garbage of every length up to a few hundred bytes, for each
+    /// format magic prefix, must never crash and must preserve the input.
+    func testOptimizeRandomGarbageNeverCrashes() {
+        var rng = SystemRandomNumberGenerator()
+        let prefixes: [[UInt8]] = [
+            [0xFF, 0xD8, 0xFF],                                      // JPEG SOI
+            [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],        // PNG signature
+            Array("GIF89a".utf8),                                    // GIF
+            Array("GIF87a".utf8),
+            [],                                                      // no prefix
+        ]
+        for prefix in prefixes {
+            for len in 0..<300 {
+                var bytes = prefix
+                for _ in 0..<len { bytes.append(UInt8.random(in: 0...255, using: &rng)) }
+                let data = Data(bytes)
+                let result = Slimg.optimize(data)
+                // Never larger, and unchanged content is returned verbatim.
+                XCTAssertLessThanOrEqual(result.optimizedSize, result.originalSize)
+                if !result.changed {
+                    XCTAssertEqual(result.data, data)
+                }
+            }
+        }
+    }
+
+    /// Every truncation of a valid JPEG/PNG/GIF must be handled without crashing
+    /// and must never grow the file.
+    func testOptimizeTruncatedValidImagesNeverCrash() {
+        let image = makeCGImage(width: 32, height: 32)
+        let samples: [Data] = [
+            encode(image, as: .jpeg, withMetadata: true),
+            encode(image, as: .png, withMetadata: true),
+            encode(image, as: .gif, withMetadata: false),
+        ]
+        for full in samples {
+            let bytes = [UInt8](full)
+            // Step through truncation lengths (stride keeps the test fast).
+            var len = 0
+            while len <= bytes.count {
+                let data = Data(bytes.prefix(len))
+                let result = Slimg.optimize(data)
+                XCTAssertLessThanOrEqual(result.optimizedSize, result.originalSize)
+                len += max(1, bytes.count / 200)
+            }
+        }
+    }
+
+    /// A file whose declared PNG chunk length is absurdly large (claims more
+    /// bytes than exist) must bail out and preserve the original, not OOB-read.
+    func testPNGOversizedChunkLengthBailsOut() {
+        var bytes = PNGOptimizer.signature
+        // IHDR-looking chunk with a 4-byte length of 0x7FFFFFFF but no payload.
+        bytes.append(contentsOf: [0x7F, 0xFF, 0xFF, 0xFF])           // length
+        bytes.append(contentsOf: Array("IHDR".utf8))                 // type
+        bytes.append(contentsOf: [0x00, 0x00, 0x00, 0x00])           // truncated payload
+        let data = Data(bytes)
+        XCTAssertEqual(Slimg.detectFormat(data), .png)
+        let result = Slimg.optimize(data)
+        XCTAssertFalse(result.changed)
+        XCTAssertEqual(result.data, data, "malformed PNG must be preserved untouched")
+    }
+
+    /// A JPEG with a segment length that runs past EOF must bail out cleanly.
+    func testJPEGOversizedSegmentLengthBailsOut() {
+        // SOI + APP1 marker claiming a 0xFFFF-byte segment with no payload.
+        let bytes: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE1, 0xFF, 0xFF, 0x00]
+        let data = Data(bytes)
+        XCTAssertEqual(Slimg.detectFormat(data), .jpeg)
+        let result = Slimg.optimize(data)
+        XCTAssertFalse(result.changed)
+        XCTAssertEqual(result.data, data)
+    }
+
+    /// A GIF claiming a global color table larger than the file must bail out.
+    func testGIFOversizedColorTableBailsOut() {
+        var bytes = Array("GIF89a".utf8)
+        // Logical screen descriptor: width/height + packed byte with GCT flag set
+        // and a large GCT size, but no actual table bytes follow.
+        bytes.append(contentsOf: [0x10, 0x00, 0x10, 0x00]) // 16x16
+        bytes.append(0xF7)                                  // packed: GCT present, size=7 -> 768 bytes
+        bytes.append(0x00)                                  // background color index
+        bytes.append(0x00)                                  // pixel aspect ratio
+        // One trailing byte so the file is 14 bytes: this clears the `n > 13`
+        // header guard and actually exercises the global-color-table bounds
+        // check (768-byte GCT claimed, but no table bytes follow).
+        bytes.append(0x2C)                                  // image descriptor introducer
+        let data = Data(bytes)
+        XCTAssertEqual(Slimg.detectFormat(data), .gif)
+        let result = Slimg.optimize(data)
+        XCTAssertFalse(result.changed)
+        XCTAssertEqual(result.data, data)
+    }
+
     // MARK: - Unknown format
 
     func testUnknownFormatIsUntouched() {

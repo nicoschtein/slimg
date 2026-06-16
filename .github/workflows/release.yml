@@ -1,0 +1,259 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (without leading 'v'), e.g. 1.2.3"
+        required: true
+        default: "0.0.0-dev"
+
+# Required to create the GitHub Release and upload assets.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, package & release
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      # ---------------------------------------------------------------------
+      # Derive VERSION from the tag (strip leading 'v') or from the dispatch
+      # input. Exposed to later steps as $VERSION / steps.meta.outputs.version.
+      # ---------------------------------------------------------------------
+      - name: Derive version
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Building Slimg version: $VERSION"
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/.cache/org.swift.swiftpm
+          key: spm-release-${{ runner.os }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: |
+            spm-release-${{ runner.os }}-
+
+      # ---------------------------------------------------------------------
+      # Generate the app icon (.icns) and web assets before packaging so the
+      # bundle carries the proper icon.
+      # ---------------------------------------------------------------------
+      # Refresh the icon/web assets, but non-fatal: a valid AppIcon.icns is
+      # committed and build-app.sh embeds it, so a headless rendering/iconutil
+      # hiccup must never abort a release.
+      - name: Generate icons (refresh; non-fatal)
+        run: swift Scripts/generate-icons.swift || echo "icon generation failed; using committed Resources/AppIcon.icns"
+
+      # ---------------------------------------------------------------------
+      # Optional code-signing identity import.
+      #
+      # Real Developer ID signing + notarization are enabled ONLY when these
+      # repository secrets are present:
+      #   MACOS_CERT_P12_BASE64   base64 of a Developer ID Application .p12
+      #   MACOS_CERT_PASSWORD     password for that .p12
+      #   MACOS_SIGN_IDENTITY     e.g. "Developer ID Application: Name (TEAMID)"
+      #
+      # Notarization additionally needs EITHER (App Store Connect API key):
+      #   AC_API_KEY_ID, AC_API_ISSUER_ID, AC_API_KEY_BASE64
+      # OR (Apple ID app-specific password):
+      #   APPLE_ID, APPLE_APP_PASSWORD, APPLE_TEAM_ID
+      #
+      # When the signing secrets are ABSENT (the default for a fresh repo), the
+      # build falls back to an ad-hoc signature (codesign -s -) and the workflow
+      # still succeeds and produces all artifacts.
+      # ---------------------------------------------------------------------
+      - name: Import signing certificate (optional)
+        id: signing
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${MACOS_CERT_P12_BASE64:-}" ] && [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
+            echo "Signing secrets found — importing certificate into a temp keychain."
+            KEYCHAIN="$RUNNER_TEMP/slimg-signing.keychain-db"
+            KEYCHAIN_PW="$(openssl rand -base64 24)"
+            CERT_PATH="$RUNNER_TEMP/cert.p12"
+            echo "$MACOS_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+            security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN"
+            security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+            security import "$CERT_PATH" -P "${MACOS_CERT_PASSWORD:-}" \
+              -A -t cert -f pkcs12 -k "$KEYCHAIN"
+            security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+            # Prepend our keychain to the search list so codesign finds the cert.
+            security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+
+            echo "sign=true" >> "$GITHUB_OUTPUT"
+            echo "identity=$MACOS_SIGN_IDENTITY" >> "$GITHUB_OUTPUT"
+          else
+            echo "No signing secrets — using ad-hoc signature."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---------------------------------------------------------------------
+      # Build a universal (arm64 + x86_64) release and assemble Slimg.app.
+      # build-app.sh embeds AppIcon.icns and stamps SLIMG_VERSION into the
+      # bundled Info.plist. If a real identity was imported, it signs with the
+      # hardened runtime; otherwise it ad-hoc signs.
+      # ---------------------------------------------------------------------
+      - name: Build universal app bundle
+        env:
+          SLIMG_VERSION: ${{ steps.meta.outputs.version }}
+          SLIMG_SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: |
+          ./Scripts/build-app.sh release --universal
+          echo "Bundle architectures:"
+          lipo -archs Slimg.app/Contents/MacOS/Slimg
+
+      # Locate the universal CLI binary for packaging.
+      - name: Build CLI (universal)
+        run: |
+          swift build -c release --arch arm64 --arch x86_64 --product slimg
+          BIN_DIR="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)"
+          echo "CLI_BIN=$BIN_DIR/slimg" >> "$GITHUB_ENV"
+          lipo -archs "$BIN_DIR/slimg"
+
+      # Sign the CLI binary (hardened runtime if a real identity exists).
+      - name: Sign CLI binary
+        env:
+          SIGN: ${{ steps.signing.outputs.sign }}
+          IDENTITY: ${{ steps.signing.outputs.identity }}
+        run: |
+          set -euo pipefail
+          if [ "$SIGN" = "true" ]; then
+            codesign --force --options runtime --timestamp --sign "$IDENTITY" "$CLI_BIN"
+          else
+            codesign --force --sign - "$CLI_BIN"
+          fi
+
+      # ---------------------------------------------------------------------
+      # Build the drag-to-install DMG (Slimg.app + /Applications symlink).
+      # ---------------------------------------------------------------------
+      - name: Create DMG
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/dmg-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp -R Slimg.app "$STAGE/Slimg.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Slimg" -srcfolder "$STAGE" \
+            -ov -format UDZO "Slimg.dmg"
+
+      # Sign + notarize the DMG when secrets allow; otherwise leave ad-hoc.
+      - name: Sign & notarize DMG (optional)
+        env:
+          SIGN: ${{ steps.signing.outputs.sign }}
+          IDENTITY: ${{ steps.signing.outputs.identity }}
+          AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
+          AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
+          AC_API_KEY_BASE64: ${{ secrets.AC_API_KEY_BASE64 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          if [ "$SIGN" != "true" ]; then
+            echo "Ad-hoc build — skipping DMG notarization."
+            exit 0
+          fi
+          codesign --force --sign "$IDENTITY" --timestamp "Slimg.dmg"
+
+          NOTARIZE_ARGS=""
+          if [ -n "${AC_API_KEY_ID:-}" ] && [ -n "${AC_API_ISSUER_ID:-}" ] && [ -n "${AC_API_KEY_BASE64:-}" ]; then
+            echo "Notarizing via App Store Connect API key."
+            KEY_PATH="$RUNNER_TEMP/ac_api_key.p8"
+            echo "$AC_API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+            NOTARIZE_ARGS="--key $KEY_PATH --key-id $AC_API_KEY_ID --issuer $AC_API_ISSUER_ID"
+          elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+            echo "Notarizing via Apple ID app-specific password."
+            NOTARIZE_ARGS="--apple-id $APPLE_ID --password $APPLE_APP_PASSWORD --team-id $APPLE_TEAM_ID"
+          else
+            echo "Signed but no notarization credentials — skipping notarytool."
+            NOTARIZE_ARGS=""
+          fi
+
+          if [ -n "$NOTARIZE_ARGS" ]; then
+            xcrun notarytool submit "Slimg.dmg" $NOTARIZE_ARGS --wait
+            xcrun stapler staple "Slimg.dmg"
+          fi
+
+      # ---------------------------------------------------------------------
+      # Package the universal CLI as slimg-cli-macos.tar.gz with a short note.
+      # ---------------------------------------------------------------------
+      - name: Package CLI tarball
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/cli-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp "$CLI_BIN" "$STAGE/slimg"
+          if [ -f LICENSE ]; then cp LICENSE "$STAGE/LICENSE"; fi
+          {
+            printf 'Slimg CLI %s - lossless image optimizer for macOS\n' "$VERSION"
+            printf 'https://github.com/nicoschtein/slimg\n\n'
+            printf 'Install:\n'
+            printf '  sudo mv slimg /usr/local/bin/slimg\n'
+            printf '  # or place it anywhere on your PATH.\n\n'
+            printf 'Usage:\n'
+            printf '  slimg --help\n\n'
+            printf 'This is a universal (arm64 + x86_64) binary. Slimg is open source\n'
+            printf 'and runs 100%% on-device: no uploads, no servers, no telemetry.\n'
+          } > "$STAGE/README.txt"
+          tar -C "$STAGE" -czf "slimg-cli-macos.tar.gz" .
+
+      # ---------------------------------------------------------------------
+      # Checksums for both release assets.
+      # ---------------------------------------------------------------------
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          shasum -a 256 Slimg.dmg > Slimg.dmg.sha256
+          shasum -a 256 slimg-cli-macos.tar.gz > slimg-cli-macos.tar.gz.sha256
+          cat Slimg.dmg.sha256 slimg-cli-macos.tar.gz.sha256
+
+      # ---------------------------------------------------------------------
+      # Create the GitHub Release and upload the artifacts + checksums.
+      # ---------------------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', steps.meta.outputs.version) }}
+          name: Slimg ${{ steps.meta.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          # Manual workflow_dispatch runs (not a real tag) publish only as a
+          # draft so dev/test builds never create a public release or tag.
+          draft: ${{ github.ref_type != 'tag' }}
+          files: |
+            Slimg.dmg
+            Slimg.dmg.sha256
+            slimg-cli-macos.tar.gz
+            slimg-cli-macos.tar.gz.sha256

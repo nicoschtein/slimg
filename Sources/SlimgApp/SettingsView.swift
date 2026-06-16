@@ -23,12 +23,17 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("Slimg never changes pixels and never produces a larger file. JPEG scan data is preserved exactly; PNG image data is only re-deflated.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(Brand.teal500)
+                    Text("Slimg never changes pixels and never produces a larger file. JPEG scan data is preserved exactly; PNG image data is only re-deflated.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
+        .tint(Brand.teal500)
         .frame(width: 420)
         .padding()
     }
