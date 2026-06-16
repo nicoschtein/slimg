@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to keep CI fast.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Use a recent stable Xcode (and thus Swift toolchain) on the runner.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Swift version
+        run: swift --version
+
+      # Cache SwiftPM build products and the package cache keyed on the manifest.
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+            ~/.cache/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Build (all products)
+        run: swift build -v
+
+      - name: Test
+        run: swift test
+
+      # Ensure the app bundle assembles and packaging logic stays healthy.
+      - name: Assemble app bundle
+        run: ./Scripts/build-app.sh release
+
+      # Catch icon drift: regenerate icons and assets. Non-fatal so a transient
+      # rendering hiccup in CI never blocks a PR, but we still surface failures.
+      - name: Generate icons (drift check)
+        continue-on-error: true
+        run: swift Scripts/generate-icons.swift
+
+  lint:
+    name: Format lint (non-blocking)
+    runs-on: macos-14
+    # Never block CI on style. swiftformat is only run if it is installed on the
+    # runner; otherwise this job is a no-op.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Lint with swiftformat (if available)
+        run: |
+          if command -v swiftformat >/dev/null 2>&1; then
+            # Informational only — surface style suggestions without ever
+            # failing the check (style must never block CI).
+            swiftformat --lint Sources Tests \
+              || echo "::notice::swiftformat reported style suggestions (non-blocking)."
+          else
+            echo "swiftformat not installed on runner — skipping style lint."
+          fi
