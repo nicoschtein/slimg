@@ -61,6 +61,10 @@ enum HEICOptimizer {
             return true
         }
         for path in paths {
+            // ImageIO can enumerate unresolvable EXIF paths (for example,
+            // exifEX:CompositeImage in iPhone photos), or aliases whose target
+            // was already removed. Neither should abort the whole operation.
+            guard CGImageMetadataCopyTagWithPath(metadata, nil, path) != nil else { continue }
             guard CGImageMetadataRemoveTagWithPath(metadata, nil, path) else { return nil }
         }
 
