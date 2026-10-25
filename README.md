@@ -7,7 +7,7 @@
 ### Slim your images. Lose nothing.
 
 Lossless image optimizer for macOS. Slimg strips metadata and re-packs
-JPEG, PNG and GIF files so they get smaller **without ever changing a single
+JPEG, PNG, GIF and HEIC files so they get smaller **without ever changing a single
 pixel** — the output decodes byte-for-byte identically to the input, and is
 never larger than what you started with.
 
@@ -157,8 +157,8 @@ The compiled CLI lands in `.build/release/slimg`, and `build-app.sh` produces
 
 1. Open **Slimg**.
 2. **Drag images (or a folder) onto the window**, or click **Add Images**
-   (`⌘O`). Folders are scanned recursively for `.jpg`, `.jpeg`, `.png` and
-   `.gif` files.
+   (`⌘O`). Folders are scanned recursively for `.jpg`, `.jpeg`, `.png`, `.gif`,
+   `.heic` and `.heif` files.
 3. Each file is optimized as it's added. The footer shows total bytes saved;
    each row shows its savings and a button to open the **advanced report**
    listing exactly what was removed.
@@ -210,14 +210,14 @@ $ slimg --dry-run --report screenshot.png
 | `--backup`, `--copy` | Keep the original as `name.bak.ext`; write the optimized image under its original name. (Off by default — the CLI optimizes in place unless you ask for a backup.) |
 | `--report`, `-v` | Print an advanced breakdown of what was removed. |
 | `--keep-metadata` | Do **not** strip EXIF / XMP / IPTC / comments. |
-| `--strip-color` | Also strip ICC color profiles (may shift colors). |
+| `--strip-color` | Also strip ICC color profiles (may shift colors). HEIC profiles are always kept. |
 | `--no-recompress` | Skip lossless PNG re-compression. |
 | `-h`, `--help` | Show usage. |
 
 Run with no arguments (or `--help`) to print usage. Unsupported files are
 skipped; files that are already optimal are left untouched. Pixels are never
 altered, and output is never larger than the input. Supported formats: JPEG,
-PNG, GIF.
+PNG, GIF, HEIC/HEIF (HEVC images).
 
 > **Note:** the CLI operates on the paths you give it — it does not recurse into
 > directories. To process a tree, expand it with your shell (e.g.
@@ -225,7 +225,8 @@ PNG, GIF.
 
 ## How it works
 
-Slimg parses each container itself and rewrites only the parts that don't affect
+Slimg parses JPEG, PNG and GIF containers itself, and uses macOS ImageIO's
+lossless copy operation for HEIC. It rewrites only the parts that don't affect
 rendered pixels. On any structural surprise an optimizer bails out and the
 original bytes are kept verbatim, so a file Slimg doesn't fully understand is
 never corrupted. A final safety net guarantees the output is never larger than
@@ -247,6 +248,14 @@ unchanged.
   (e.g. XMP). The `NETSCAPE` looping extension, all graphic-control extensions,
   color tables and the LZW image data are preserved, so frames and animation
   timing are untouched.
+- **HEIC / HEIF** — removes known descriptive EXIF, GPS, XMP and IPTC metadata
+  using `CGImageDestinationCopyImageSource`, which copies compressed image data
+  without re-encoding it. Orientation, color profiles and unfamiliar metadata
+  namespaces (which can carry HDR rendering information) are preserved. The
+  report gives combined metadata and container savings. HEIC color profiles
+  are always retained, including with `--strip-color`. Files that ImageIO cannot
+  copy losslessly, and multi-image collections, are left untouched. This supports
+  HEVC images in `.heic` / `.heif` files, not AVIF or other HEIF codecs.
 
 Color profiles (ICC) are **kept by default** in every format — stripping them
 can shift how colors appear, so it's strictly opt-in (`--strip-color`, or the
@@ -269,7 +278,7 @@ Settings toggle in the app).
 
 ```
 Sources/
-  SlimgCore/    Lossless optimizers (JPEG, PNG, GIF) + zlib wrapper — the engine
+  SlimgCore/    Lossless optimizers (JPEG, PNG, GIF, HEIC) + zlib wrapper — the engine
   CZlib/        Tiny C shim that links the system zlib
   slimg/        Command-line tool (main.swift)
   SlimgApp/     SwiftUI macOS app (Slimg.app)

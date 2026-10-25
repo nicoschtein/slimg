@@ -53,6 +53,8 @@ common web/photo formats, shipped as both an app and a CLI.
 Smoothing the edges and making install frictionless, without adding any lossy
 behavior.
 
+- ✅ Lossless **HEIC/HEIF** metadata stripping through macOS ImageIO without
+  re-encoding; orientation and color profiles preserved (unreleased).
 - 📌 **Notarized, Developer-ID-signed builds** so the app launches without the
   right-click→Open dance. (The build script already supports a real signing
   identity and hardened runtime via `SLIMG_SIGN_IDENTITY`; this is wiring it
@@ -83,8 +85,6 @@ lossless.
     lossless WebP files only.
   - **SVG** — minify markup (whitespace/metadata/editor cruft) without changing
     the rendered vector.
-  - **HEIC** — metadata stripping where it can be done without re-encoding the
-    image payload. (Lossy HEIC re-encode is **out of scope.**)
 - 💭 **Finder integration** — a Quick Action / Services entry and a Shortcuts
   action so you can slim images from the right-click menu or an automation.
 - 💭 **Parallel batch processing** — optimize multiple files concurrently for
