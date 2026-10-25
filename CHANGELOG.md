@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet. See the [Roadmap](ROADMAP.md) for what's planned._
+### Added
+
+- **HEIC/HEIF support** for iPhone photos in the app and CLI, including folder
+  drops, the file picker and Finder document types. Uses macOS ImageIO to strip
+  descriptive metadata without re-encoding image data, preserving orientation
+  and color profiles. Unsupported layouts remain unchanged.
 
 ## [1.0.0] - 2026-06-15
 
