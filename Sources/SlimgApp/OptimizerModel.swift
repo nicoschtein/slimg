@@ -33,7 +33,7 @@ final class OptimizerModel: ObservableObject {
     // optimized image under the original name. Off: overwrite in place.
     @Published var keepOriginals = true
 
-    static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "gif"]
+    static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "heic", "heif"]
 
     var totalOriginal: Int { items.compactMap { $0.optimizedSize != nil ? $0.originalSize : nil }.reduce(0, +) }
     var totalOptimized: Int { items.compactMap { $0.optimizedSize }.reduce(0, +) }
@@ -47,7 +47,7 @@ final class OptimizerModel: ObservableObject {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.allowedContentTypes = [.jpeg, .png, .gif]
+        panel.allowedContentTypes = [.jpeg, .png, .gif, .heic, .heif]
         if panel.runModal() == .OK {
             addURLs(panel.urls)
         }

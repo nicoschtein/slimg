@@ -37,12 +37,12 @@ func printUsage() {
                            optimized image under its original name.
       --report             Print an advanced breakdown of what was removed.
       --keep-metadata      Do not strip EXIF/XMP/IPTC/comments.
-      --strip-color        Also strip ICC color profiles (may shift colors).
+      --strip-color        Also strip ICC color profiles (except HEIC; may shift colors).
       --no-recompress      Skip lossless PNG re-compression.
       -h, --help           Show this help.
 
     Pixels are never altered. Output is never larger than the input.
-    Supported formats: JPEG, PNG, GIF.
+    Supported formats: JPEG, PNG, GIF, HEIC/HEIF (HEVC images).
     """
     print(usage)
 }

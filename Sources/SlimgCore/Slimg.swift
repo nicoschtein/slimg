@@ -4,6 +4,7 @@ public enum ImageFormat: String, Sendable {
     case jpeg
     case png
     case gif
+    case heic
     case unknown
 }
 
@@ -102,6 +103,7 @@ public enum Slimg {
            b[4] == 0x0D, b[5] == 0x0A, b[6] == 0x1A, b[7] == 0x0A { return .png }
         if b.count >= 6, b[0] == 0x47, b[1] == 0x49, b[2] == 0x46, b[3] == 0x38,
            (b[4] == 0x37 || b[4] == 0x39), b[5] == 0x61 { return .gif }
+        if HEICOptimizer.isHEIC(data) { return .heic }
         return .unknown
     }
 
@@ -117,6 +119,7 @@ public enum Slimg {
         case .jpeg: output = JPEGOptimizer.optimize(bytes, options: options)
         case .png:  output = PNGOptimizer.optimize(bytes, options: options)
         case .gif:  output = GIFOptimizer.optimize(bytes, options: options)
+        case .heic: output = HEICOptimizer.optimize(data, options: options)
         case .unknown: output = nil
         }
 
