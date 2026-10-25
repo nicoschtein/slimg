@@ -131,7 +131,7 @@ private struct DropZone: View {
                     .scaleEffect(isTargeted ? 1.04 : 1)
                 Text(isTargeted ? "Drop to slim them" : "Drop images to slim them")
                     .font(.title2.weight(.semibold))
-                Text("JPEG · PNG · GIF — pixels untouched, metadata removed")
+                Text("JPEG · PNG · GIF · HEIC — pixels untouched, metadata removed")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

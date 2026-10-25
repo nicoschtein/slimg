@@ -11,7 +11,7 @@ struct SettingsView: View {
                     get: { !model.keepColorProfile },
                     set: { model.keepColorProfile = !$0 }
                 ))
-                .help("Removing color profiles can shift how colors appear. Off by default to stay visually lossless.")
+                .help("Removing color profiles can shift how colors appear. Off by default. HEIC color profiles are always preserved.")
                 Toggle("Re-compress losslessly (PNG)", isOn: $model.recompress)
             }
 
@@ -26,7 +26,7 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundStyle(Brand.teal500)
-                    Text("Slimg never changes pixels and never produces a larger file. JPEG scan data is preserved exactly; PNG image data is only re-deflated.")
+                    Text("Slimg never changes pixels and never produces a larger file. JPEG and HEIC image data is preserved; PNG image data is only re-deflated.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
