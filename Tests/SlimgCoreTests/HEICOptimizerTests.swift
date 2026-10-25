@@ -7,7 +7,8 @@ import XCTest
 @testable import SlimgCore
 
 final class HEICOptimizerTests: XCTestCase {
-    private func encode(orientation: Int = 6, withMetadata: Bool = true, withDepth: Bool = false) throws -> Data {
+    private func encode(orientation: Int = 6, withMetadata: Bool = true, withDepth: Bool = false,
+                        withCompositeImage: Bool = false) throws -> Data {
         let colorSpace = try XCTUnwrap(CGColorSpace(name: CGColorSpace.displayP3))
         let context = try XCTUnwrap(CGContext(
             data: nil, width: 64, height: 48, bitsPerComponent: 8, bytesPerRow: 0,
@@ -36,8 +37,12 @@ final class HEICOptimizerTests: XCTestCase {
                 "https://slimg.test/rendering/" as CFString, "render" as CFString, nil))
             XCTAssertTrue(CGImageMetadataSetValueWithPath(metadata, nil, "render:Headroom" as CFString, "4" as CFString))
         }
+        var properties: [CFString: Any] = [kCGImagePropertyOrientation: orientation]
+        if withCompositeImage {
+            properties[kCGImagePropertyExifDictionary] = [kCGImagePropertyExifCompositeImage: 2]
+        }
         CGImageDestinationAddImageAndMetadata(destination, try XCTUnwrap(context.makeImage()), metadata,
-                                             [kCGImagePropertyOrientation: orientation] as CFDictionary)
+                                             properties as CFDictionary)
         if withDepth {
             let values = (0..<32 * 24).map { Float32($0) / 768 }
             let depthData = values.withUnsafeBytes { Data($0) }
@@ -117,6 +122,19 @@ final class HEICOptimizerTests: XCTestCase {
             XCTAssertEqual(result.data, original)
             XCTAssertTrue(result.report.isEmpty)
         }
+    }
+
+    func testCompositeImageMetadataDoesNotPreventOptimization() throws {
+        // Real iPhone photos contain this EXIF 2.32 tag. ImageIO enumerates it
+        // as exifEX:CompositeImage, but that path may not resolve for removal.
+        let original = try encode(withCompositeImage: true)
+        let exif = try properties(original)[kCGImagePropertyExifDictionary] as? NSDictionary
+        XCTAssertEqual(exif?[kCGImagePropertyExifCompositeImage] as? Int, 2)
+        let result = Slimg.optimize(original)
+        XCTAssertTrue(result.changed)
+        let afterExif = try properties(result.data)[kCGImagePropertyExifDictionary] as? NSDictionary
+        XCTAssertNil(afterExif?[kCGImagePropertyExifUserComment])
+        XCTAssertNil(try properties(result.data)[kCGImagePropertyGPSDictionary])
     }
 
     func testNoRecompressStillStripsHEICMetadata() throws {
