@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Slimg — Lossless image optimizer for macOS</title>
-  <meta name="description" content="Slim your images. Lose nothing. Slimg is a truly lossless image optimizer for macOS — it strips metadata and re-packs JPEG, PNG & GIF without changing a single pixel. 100% on-device, open source, free.">
+  <meta name="description" content="Slim your images. Lose nothing. Slimg is a truly lossless image optimizer for macOS — it strips metadata and re-packs JPEG, PNG, GIF & HEIC without changing a single pixel. 100% on-device, open source, free.">
   <link rel="canonical" href="https://slimg.app/">
   <meta name="theme-color" content="#0A0F1A">
   <meta name="color-scheme" content="dark light">
@@ -19,7 +19,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Slimg">
   <meta property="og:title" content="Slimg — Lossless image optimizer for macOS">
-  <meta property="og:description" content="Slim your images. Lose nothing. A truly lossless optimizer for JPEG, PNG & GIF that never changes a pixel. 100% on-device, open source.">
+  <meta property="og:description" content="Slim your images. Lose nothing. A truly lossless optimizer for JPEG, PNG, GIF & HEIC that never changes a pixel. 100% on-device, open source.">
   <meta property="og:url" content="https://slimg.app/">
   <meta property="og:image" content="https://slimg.app/assets/icons/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -83,7 +83,7 @@
         <div class="hero-copy">
           <span class="eyebrow">Lossless image optimizer for macOS</span>
           <h1 class="hero-title">Slim your images.<br><span class="grad-text">Lose nothing.</span></h1>
-          <p class="hero-sub">Slimg strips metadata and extra weight from your JPEG, PNG and GIF files — and re-packs them losslessly. The output decodes byte-for-byte identical to the original. Never a pixel changed.</p>
+          <p class="hero-sub">Slimg strips metadata and extra weight from your JPEG, PNG, GIF and HEIC files — and re-packs them losslessly. The output decodes byte-for-byte identical to the original. Never a pixel changed.</p>
 
           <div class="hero-cta">
             <a class="btn btn-primary" href="https://github.com/nicoschtein/slimg/releases/latest" rel="noopener">
@@ -109,7 +109,7 @@
               <div class="dropzone">
                 <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7 9m5-5l5 5M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <p class="dz-title">Drop images to slim</p>
-                <p class="dz-sub">JPEG · PNG · GIF</p>
+                <p class="dz-sub">JPEG · PNG · GIF · HEIC</p>
               </div>
 
               <ul class="result-list">
@@ -241,7 +241,7 @@
           <li class="step">
             <span class="step-num">1</span>
             <h3>Drop your images</h3>
-            <p>Drag JPEG, PNG or GIF files onto the app — single shots or whole folders. Or point the CLI at them.</p>
+            <p>Drag JPEG, PNG, GIF or HEIC files onto the app — single shots or whole folders. Or point the CLI at them.</p>
           </li>
           <li class="step">
             <span class="step-num">2</span>
@@ -359,7 +359,7 @@
           </details>
           <details>
             <summary>Which formats are supported?</summary>
-            <p>JPEG, PNG and GIF. Slimg strips metadata (EXIF, XMP, IPTC, comments, timestamps) across formats, and additionally re-deflates PNG image data losslessly.</p>
+            <p>JPEG, PNG, GIF and HEIC. Slimg strips metadata (EXIF, XMP, IPTC, comments, timestamps) across formats, and additionally re-deflates PNG image data losslessly. HEIC/HEIF support keeps compressed image data, orientation and color profiles intact.</p>
           </details>
           <details>
             <summary>Can a file come out bigger?</summary>
