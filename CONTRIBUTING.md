@@ -66,7 +66,7 @@ still runs locally.
 Sources/
   SlimgCore/    The engine. Slimg.swift (public API, format detection, the
                 "never grows" safety net) + JPEGOptimizer / PNGOptimizer /
-                GIFOptimizer + Zlib.swift (zlib wrapper).
+                GIFOptimizer / HEICOptimizer + Zlib.swift (zlib wrapper).
   CZlib/        C shim + modulemap that links the system zlib.
   slimg/        CLI: main.swift (arg parsing, file I/O, report printing).
   SlimgApp/     SwiftUI app: SlimgApp (entry), ContentView, OptimizerModel
@@ -94,7 +94,8 @@ Each format optimizer is a small enum with a single
 
 1. **Create** `Sources/SlimgCore/TIFFOptimizer.swift` following the existing
    ones as a template. Validate the magic bytes first; parse the container
-   yourself; **return `nil` on anything unexpected.**
+   yourself or use an API that guarantees a lossless compressed-data copy;
+   **return `nil` on anything unexpected.**
 2. **Strip only non-pixel data.** Drop metadata, re-pack/re-deflate the existing
    compressed data only if the result is verifiably smaller and decodes
    identically. Never touch the pixel payload.
