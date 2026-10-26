@@ -27,11 +27,16 @@
 #define CZLIB_UINT_MAX ((size_t)0xFFFFFFFFu)
 
 unsigned char *czlib_inflate(const unsigned char *src, size_t srcLen, size_t *outLen) {
+    return czlib_inflate_bounded(src, srcLen, CZLIB_INFLATE_MAX, outLen);
+}
+
+unsigned char *czlib_inflate_bounded(const unsigned char *src, size_t srcLen, size_t maximumSize, size_t *outLen) {
     if (outLen) *outLen = 0;
-    if (src == NULL || srcLen == 0) {
+    if (src == NULL || srcLen == 0 || maximumSize == 0) {
         return NULL;
     }
 
+    if (maximumSize > CZLIB_INFLATE_MAX) maximumSize = CZLIB_INFLATE_MAX;
     z_stream s;
     memset(&s, 0, sizeof(s));
     if (inflateInit(&s) != Z_OK) {
@@ -41,10 +46,10 @@ unsigned char *czlib_inflate(const unsigned char *src, size_t srcLen, size_t *ou
     /* Initial guess: 4x input, overflow-safe, clamped to the bomb ceiling. */
     size_t cap;
     if (srcLen > (SIZE_MAX - CZLIB_CHUNK) / 4) {
-        cap = CZLIB_INFLATE_MAX;
+        cap = maximumSize;
     } else {
         cap = srcLen * 4 + CZLIB_CHUNK;
-        if (cap > CZLIB_INFLATE_MAX) cap = CZLIB_INFLATE_MAX;
+        if (cap > maximumSize) cap = maximumSize;
     }
     unsigned char *out = (unsigned char *)malloc(cap);
     if (!out) {
@@ -61,15 +66,15 @@ unsigned char *czlib_inflate(const unsigned char *src, size_t srcLen, size_t *ou
     for (;;) {
         /* Grow the output buffer when full, capped by the bomb ceiling. */
         if (produced == cap) {
-            if (cap >= CZLIB_INFLATE_MAX) {
+            if (cap >= maximumSize) {
                 /* Reached the ceiling but the stream is not done: refuse. */
                 free(out);
                 inflateEnd(&s);
                 return NULL;
             }
             size_t ncap;
-            if (cap > CZLIB_INFLATE_MAX / 2) {
-                ncap = CZLIB_INFLATE_MAX;
+            if (cap > maximumSize / 2) {
+                ncap = maximumSize;
             } else {
                 ncap = cap * 2;
             }
@@ -100,6 +105,11 @@ unsigned char *czlib_inflate(const unsigned char *src, size_t srcLen, size_t *ou
         produced += (size_t)(beforeOut - s.avail_out);
 
         if (ret == Z_STREAM_END) {
+            if (inPos != srcLen) {
+                free(out);
+                inflateEnd(&s);
+                return NULL;
+            }
             break;
         }
         if (ret == Z_OK) {
@@ -120,6 +130,10 @@ unsigned char *czlib_inflate(const unsigned char *src, size_t srcLen, size_t *ou
 }
 
 unsigned char *czlib_deflate(const unsigned char *src, size_t srcLen, int level, size_t *outLen) {
+    return czlib_deflate_strategy(src, srcLen, level, Z_DEFAULT_STRATEGY, outLen);
+}
+
+unsigned char *czlib_deflate_strategy(const unsigned char *src, size_t srcLen, int level, int strategy, size_t *outLen) {
     if (outLen) *outLen = 0;
     if (src == NULL && srcLen != 0) {
         return NULL;
@@ -128,7 +142,8 @@ unsigned char *czlib_deflate(const unsigned char *src, size_t srcLen, int level,
 
     z_stream s;
     memset(&s, 0, sizeof(s));
-    if (deflateInit(&s, level) != Z_OK) {
+    if (strategy < Z_DEFAULT_STRATEGY || strategy > Z_FIXED ||
+        deflateInit2(&s, level, Z_DEFLATED, 15, 8, strategy) != Z_OK) {
         return NULL;
     }
 

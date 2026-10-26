@@ -59,8 +59,8 @@ image untouched. It does one thing carefully:
   byte-identical pixels, and the file is never larger than the input.
 - **Private by design.** 100% on-device. No uploads, no servers, no accounts,
   no telemetry. Your images never leave your Mac.
-- **Native & fast.** A small, pure-Swift macOS app and CLI. No Electron, no
-  bundled third-party binaries, no background daemons.
+- **Native & local.** A Swift macOS app and CLI with compiled-in JPEG and Zopfli
+  libraries. No Electron, separately installed tools, or background daemons.
 - **Transparent.** An advanced report shows exactly what was removed (EXIF,
   XMP, IPTC, comments, timestamps, re-deflated PNG data) and how many bytes
   each item saved. Open source, auditable.
@@ -148,8 +148,10 @@ swift test
 ```
 
 The compiled CLI lands in `.build/release/slimg`, and `build-app.sh` produces
-`Slimg.app` in the repo root. Slimg is pure Swift and links the system `zlib`
-(`-lz`); there are no bundled third-party binaries.
+`Slimg.app` in the repo root. Slimg links system `zlib` and builds pinned,
+vendored libjpeg-turbo and Google Zopfli sources into the app and CLI. No
+additional tools or package downloads are needed to build or use Slimg. See
+[third-party notices](THIRD_PARTY_NOTICES.md) for versions and licenses.
 
 ## Usage
 
@@ -168,6 +170,25 @@ original name and backs the original up as `name.bak.ext`. Turn it off (in the
 header toggle or in **Settings**) to optimize in place. Settings also expose
 metadata stripping, ICC color-profile stripping (off by default), and lossless
 PNG re-compression.
+
+**Additional lossless optimization** settings are all **off by default**:
+
+| Setting | What it tries |
+|---|---|
+| Deep PNG compression | Reversible scanline filters and multiple zlib strategies. |
+| Maximum PNG compression (Zopfli) | A slower search for a smaller DEFLATE stream. |
+| Reduce PNG color storage exactly | Exact palettes, opaque-alpha removal, and exactly representable sample/index depths. No quantization. |
+| Optimize PNG chunks and profiles | Consolidate image chunks and recompress retained ICC profiles without changing their contents. |
+| Optimize JPEG Huffman coding | Encode existing JPEG coefficients with optimized entropy tables. |
+| Try progressive JPEG encoding | Try a progressive scan arrangement of the existing coefficients. |
+| Recompress GIF image data | Recompress unchanged frame indices; preserve palettes, frame layout, transparency, disposal, timing, and looping. |
+
+Only smaller results are retained. Advanced methods have resource limits and
+conservatively skip unsupported layouts. PNG representation changes preserve
+native sample values, including RGB hidden under full transparency, and skip
+animation, interlacing, HDR, and metadata needing unsupported rewrites. Zopfli
+is limited to 1 MiB of filtered image data. These settings can take considerably
+longer; savings depend on how the original file was encoded.
 
 ### The CLI
 
@@ -212,12 +233,23 @@ $ slimg --dry-run --report screenshot.png
 | `--keep-metadata` | Do **not** strip EXIF / XMP / IPTC / comments. |
 | `--strip-color` | Also strip ICC color profiles (may shift colors). HEIC profiles are always kept. |
 | `--no-recompress` | Skip lossless PNG re-compression. |
+| `--deep-png` | Try additional reversible PNG filters and compression strategies. |
+| `--zopfli-png` | Try maximum PNG compression (much slower). |
+| `--reduce-png` | Try exact PNG color/sample storage reductions. |
+| `--optimize-png` | Consolidate PNG image chunks and recompress retained profiles. |
+| `--optimize-jpeg` | Optimize JPEG Huffman coding without changing coefficients. |
+| `--progressive-jpeg` | Try progressive JPEG coding without changing coefficients. |
+| `--recompress-gif` | Recompress GIF frame indices without changing the animation. |
 | `-h`, `--help` | Show usage. |
 
 Run with no arguments (or `--help`) to print usage. Unsupported files are
 skipped; files that are already optimal are left untouched. Pixels are never
 altered, and output is never larger than the input. Supported formats: JPEG,
 PNG, GIF, HEIC/HEIF (HEVC images).
+
+The seven additional methods require their explicit flags. `--no-recompress`
+disables the standard PNG pass; an explicit advanced flag still enables its
+own method. Metadata controls apply independently of compression settings.
 
 > **Note:** the CLI operates on the paths you give it — it does not recurse into
 > directories. To process a tree, expand it with your shell (e.g.
@@ -237,17 +269,24 @@ unchanged.
   APP15, and `COM` comments. APP0 (JFIF) and APP14 (Adobe) are kept because
   they're needed to interpret the image; an APP2 ICC profile is kept by default.
   The entropy-coded scan data (everything from `SOS` onward) is copied
-  byte-for-byte, which is what makes the change lossless.
+  byte-for-byte by default. Optional Huffman/progressive optimization reads and
+  writes the existing quantized coefficients through libjpeg-turbo without
+  decoding/re-encoding pixels or changing quantization/subsampling. It retains
+  only smaller candidates and preserves the remaining marker metadata.
 - **PNG** — drops metadata chunks (`tEXt`, `zTXt`, `iTXt`, `tIME`, `eXIf`) and,
   only if you ask, `iCCP`. It also re-inflates and **re-deflates the `IDAT`
   image data at zlib level 9**: the decompressed filtered scanlines are
   identical, so decoded pixels are unchanged — only the compression is tighter.
   All rendering-relevant chunks (`IHDR`, `PLTE`, `tRNS`, `gAMA`, `cHRM`, `sRGB`,
-  `sBIT`, `bKGD`, `pHYs`, …) are preserved.
+  `sBIT`, `bKGD`, `pHYs`, …) are preserved. Optional deep filtering, exact
+  representation reductions, chunk/profile optimization and Zopfli compression
+  extend this path without changing samples or color interpretation.
 - **GIF** — drops Comment Extensions and non-essential Application Extensions
   (e.g. XMP). The `NETSCAPE` looping extension, all graphic-control extensions,
   color tables and the LZW image data are preserved, so frames and animation
-  timing are untouched.
+  timing are untouched. Optional LZW recompression rewrites the compression of
+  exactly the same indices, retaining descriptors, palettes and animation
+  controls verbatim; frame cropping and delta rewriting are not performed.
 - **HEIC / HEIF** — removes known descriptive EXIF, GPS, XMP and IPTC metadata
   using `CGImageDestinationCopyImageSource`, which copies compressed image data
   without re-encoding it. Orientation, color profiles and unfamiliar metadata
@@ -280,6 +319,8 @@ Settings toggle in the app).
 Sources/
   SlimgCore/    Lossless optimizers (JPEG, PNG, GIF, HEIC) + zlib wrapper — the engine
   CZlib/        Tiny C shim that links the system zlib
+  CJPEG/        Pinned libjpeg-turbo sources and a coefficient-copy C bridge
+  CZopfli/      Pinned Google Zopfli compression sources and C bridge
   slimg/        Command-line tool (main.swift)
   SlimgApp/     SwiftUI macOS app (Slimg.app)
 Tests/

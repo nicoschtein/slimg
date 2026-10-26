@@ -198,7 +198,7 @@
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
             </span>
             <h3>Native &amp; fast</h3>
-            <p>A small, pure-Swift app and CLI. No Electron, no bundled third-party binaries, no background daemons. Universal binary for Apple Silicon and Intel.</p>
+            <p>A native Swift app and CLI with built-in compression libraries. No Electron, separately installed tools, or background daemons. Universal binary for Apple Silicon and Intel.</p>
           </article>
 
           <article class="card">
@@ -246,7 +246,7 @@
           <li class="step">
             <span class="step-num">2</span>
             <h3>Slimg slims, losslessly</h3>
-            <p>It strips metadata segments and re-deflates PNG image data at zlib level 9 — without ever touching a pixel.</p>
+            <p>It strips metadata and recompresses PNG image data losslessly. Optional deeper PNG, JPEG, and GIF optimization is off by default — pixels stay unchanged.</p>
           </li>
           <li class="step">
             <span class="step-num">3</span>
@@ -351,7 +351,7 @@
         <div class="faq">
           <details>
             <summary>Is it really lossless?</summary>
-            <p>Yes — in the strict sense. Slimg never re-encodes your pixels. It removes metadata and re-deflates PNG image data at zlib level 9, both of which leave the decoded image byte-for-byte identical to the original. This is not the "visually lossless" claim that lossy tools make.</p>
+            <p>Yes — in the strict sense. Slimg preserves pixel values. Additional compression methods are off by default and change only how samples, JPEG coefficients, or GIF indices are stored. Every method keeps only smaller results; lossy quantization is excluded.</p>
           </details>
           <details>
             <summary>Does it upload my images anywhere?</summary>

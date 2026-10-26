@@ -29,11 +29,28 @@ final class OptimizerModel: ObservableObject {
     @Published var stripMetadata = true
     @Published var keepColorProfile = true
     @Published var recompress = true
+    @Published var pngDeepCompression = false
+    @Published var pngZopfli = false
+    @Published var pngReduceRepresentation = false
+    @Published var pngOptimizeStructure = false
+    @Published var jpegOptimizeHuffman = false
+    @Published var jpegProgressive = false
+    @Published var gifRecompress = false
     // On (default): back up the original as name.bak.ext and write the
     // optimized image under the original name. Off: overwrite in place.
     @Published var keepOriginals = true
 
     static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "heic", "heif"]
+
+    // Deep compression allocates decoded sample/coefficient buffers. Keep a
+    // large folder drop from starting an unbounded number of these at once.
+    private nonisolated static let processingQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "app.slimg.optimization"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 2
+        return queue
+    }()
 
     var totalOriginal: Int { items.compactMap { $0.optimizedSize != nil ? $0.originalSize : nil }.reduce(0, +) }
     var totalOptimized: Int { items.compactMap { $0.optimizedSize }.reduce(0, +) }
@@ -106,13 +123,20 @@ final class OptimizerModel: ObservableObject {
         let options = OptimizationOptions(
             stripMetadata: stripMetadata,
             keepColorProfile: keepColorProfile,
-            recompress: recompress
+            recompress: recompress,
+            pngDeepCompression: pngDeepCompression,
+            pngZopfli: pngZopfli,
+            pngReduceRepresentation: pngReduceRepresentation,
+            pngOptimizeStructure: pngOptimizeStructure,
+            jpegOptimizeHuffman: jpegOptimizeHuffman,
+            jpegProgressive: jpegProgressive,
+            gifRecompress: gifRecompress
         )
         let keepOriginals = self.keepOriginals
 
-        Task.detached(priority: .userInitiated) {
+        Self.processingQueue.addOperation {
             let outcome = Self.run(url: url, options: options, keepOriginals: keepOriginals)
-            await MainActor.run { self.apply(outcome, to: itemID) }
+            Task { @MainActor in self.apply(outcome, to: itemID) }
         }
     }
 
