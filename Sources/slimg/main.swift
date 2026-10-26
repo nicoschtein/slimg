@@ -39,10 +39,18 @@ func printUsage() {
       --keep-metadata      Do not strip EXIF/XMP/IPTC/comments.
       --strip-color        Also strip ICC color profiles (except HEIC; may shift colors).
       --no-recompress      Skip lossless PNG re-compression.
+      --deep-png           Try additional PNG filters and compression strategies.
+      --zopfli-png         Try maximum PNG compression (much slower).
+      --reduce-png         Reduce PNG color storage only when exactly lossless.
+      --optimize-png       Combine PNG chunks and recompress retained profiles.
+      --optimize-jpeg      Optimize JPEG Huffman coding without changing coefficients.
+      --progressive-jpeg   Try progressive JPEG coding; keep only if smaller.
+      --recompress-gif     Recompress GIF indices without changing animation.
       -h, --help           Show this help.
 
     Pixels are never altered. Output is never larger than the input.
     Supported formats: JPEG, PNG, GIF, HEIC/HEIF (HEVC images).
+    Additional optimization methods are disabled unless explicitly requested.
     """
     print(usage)
 }
@@ -67,6 +75,13 @@ for arg in args {
     case "--keep-metadata": options.stripMetadata = false
     case "--strip-color": options.keepColorProfile = false
     case "--no-recompress": options.recompress = false
+    case "--deep-png": options.pngDeepCompression = true
+    case "--zopfli-png": options.pngZopfli = true
+    case "--reduce-png": options.pngReduceRepresentation = true
+    case "--optimize-png": options.pngOptimizeStructure = true
+    case "--optimize-jpeg": options.jpegOptimizeHuffman = true
+    case "--progressive-jpeg": options.jpegProgressive = true
+    case "--recompress-gif": options.gifRecompress = true
     case "-h", "--help": printUsage(); exit(0)
     default:
         if arg.hasPrefix("-") {

@@ -68,6 +68,15 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Slimg"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
+# Include the notices for the libraries compiled into both Slimg products.
+LICENSE_DIR="$APP/Contents/Resources/ThirdPartyLicenses"
+mkdir -p "$LICENSE_DIR"
+cp THIRD_PARTY_NOTICES.md "$LICENSE_DIR/THIRD_PARTY_NOTICES.md"
+cp Sources/CJPEG/LICENSE.md "$LICENSE_DIR/libjpeg-turbo-LICENSE.md"
+cp Sources/CJPEG/README.ijg "$LICENSE_DIR/libjpeg-turbo-README.ijg"
+cp Sources/CZopfli/COPYING "$LICENSE_DIR/Zopfli-COPYING"
+cp Sources/CZopfli/CONTRIBUTORS "$LICENSE_DIR/Zopfli-CONTRIBUTORS"
+
 # Embed the app icon if it has been generated.
 if [ -f Resources/AppIcon.icns ]; then
     cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
