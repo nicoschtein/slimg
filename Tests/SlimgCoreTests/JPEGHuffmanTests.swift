@@ -17,9 +17,22 @@ final class JPEGHuffmanTests: XCTestCase {
         let frame = segment(192, [8, UInt8(height >> 8), UInt8(height & 255), UInt8(width >> 8), UInt8(width & 255), 1, 1, 0x11, 0])
         var counts = [UInt8](repeating: 0, count: 16)
         counts[7] = 1
-        let huffman = segment(196, [0] + counts + [0] + [16] + counts + [0])
+        var tables: [UInt8] = [0]
+        tables.append(contentsOf: counts)
+        tables.append(contentsOf: [0, 16])
+        tables.append(contentsOf: counts)
+        tables.append(0)
+        let huffman = segment(196, tables)
         let scan = segment(218, [1, 1, 0, 0, 63, 0])
-        return [255, 216] + quant + frame + huffman + scan + [UInt8](repeating: 0, count: ((width + 7) / 8) * ((height + 7) / 8) * 2) + [255, 217]
+        var jpeg: [UInt8] = [255, 216]
+        jpeg.append(contentsOf: quant)
+        jpeg.append(contentsOf: frame)
+        jpeg.append(contentsOf: huffman)
+        jpeg.append(contentsOf: scan)
+        let blockCount = ((width + 7) / 8) * ((height + 7) / 8)
+        jpeg.append(contentsOf: repeatElement(UInt8(0), count: blockCount * 2))
+        jpeg.append(contentsOf: [255, 217])
+        return jpeg
     }
 
     private func pixels(_ bytes: [UInt8]) throws -> [UInt8] {
