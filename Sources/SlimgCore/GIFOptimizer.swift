@@ -1,13 +1,14 @@
 /// Lossless GIF optimization: drops Comment Extensions and non-essential
 /// Application Extensions (e.g. XMP metadata) while preserving the NETSCAPE
-/// looping extension, all graphic control extensions, color tables and the
-/// LZW-compressed image data. Pixels and animation timing are untouched.
+/// looping extension, all graphic control extensions and color tables. Image
+/// data is copied by default; optional LZW recompression preserves each frame's
+/// exact index sequence. Pixels and animation timing are untouched.
 ///
 /// On any structural surprise it bails out (returns nil) so the caller keeps
 /// the original bytes — we never risk corrupting a file we don't fully parse.
 enum GIFOptimizer {
     static func optimize(_ d: [UInt8], options: OptimizationOptions) -> OptimizerOutput? {
-        guard options.stripMetadata else { return nil }
+        guard options.stripMetadata || options.gifRecompress else { return nil }
         let n = d.count
         guard n > 13, d[0] == 0x47, d[1] == 0x49, d[2] == 0x46 else { return nil }
 
@@ -19,6 +20,7 @@ enum GIFOptimizer {
         out.append(contentsOf: d[0..<13])
         let packed = d[10]
         var i = 13
+        var foundTrailer = false
 
         // Global Color Table.
         if packed & 0x80 != 0 {
@@ -34,6 +36,7 @@ enum GIFOptimizer {
             if b == 0x3B { // trailer
                 out.append(0x3B)
                 i += 1
+                foundTrailer = true
                 break
             }
 
@@ -48,10 +51,40 @@ enum GIFOptimizer {
                     i += size
                 }
                 guard i < n else { return nil }
+                let codeSizePosition = i
+                let minimumCodeSize = Int(d[i])
                 i += 1 // LZW minimum code size
+                let blocksStart = i
                 guard let after = skipSubBlocks(d, i) else { return nil }
                 i = after
-                out.append(contentsOf: d[start..<i]) // image data is always kept
+                if options.gifRecompress {
+                    let width = Int(d[start + 6]) << 8 | Int(d[start + 5])
+                    let height = Int(d[start + 8]) << 8 | Int(d[start + 7])
+                    guard width > 0, height > 0, width * height <= GIFLZW.maximumPixels else { return nil }
+                    var compressed = [UInt8]()
+                    var block = blocksStart
+                    while d[block] != 0 {
+                        let length = Int(d[block])
+                        compressed.append(contentsOf: d[(block + 1)..<(block + 1 + length)])
+                        block += 1 + length
+                    }
+                    guard let indices = GIFLZW.decode(compressed, minimumCodeSize: minimumCodeSize,
+                                                      expectedCount: width * height),
+                          let recoded = GIFLZW.encode(indices, minimumCodeSize: minimumCodeSize),
+                          GIFLZW.decode(recoded, minimumCodeSize: minimumCodeSize,
+                                        expectedCount: indices.count) == indices else { return nil }
+                    let rebuilt = GIFLZW.subBlocks(recoded)
+                    out.append(contentsOf: d[start...codeSizePosition])
+                    if rebuilt.count < after - blocksStart {
+                        out.append(contentsOf: rebuilt)
+                        items.append(RemovedItem(kind: .recompression, label: "Recompressed GIF image data (LZW)",
+                                                 bytes: after - blocksStart - rebuilt.count))
+                    } else {
+                        out.append(contentsOf: d[blocksStart..<after])
+                    }
+                } else {
+                    out.append(contentsOf: d[start..<i])
+                }
                 continue
             }
 
@@ -63,9 +96,9 @@ enum GIFOptimizer {
                 guard let after = skipSubBlocks(d, blocksStart) else { return nil }
 
                 switch label {
-                case 0xFE: // comment — drop
+                case 0xFE where options.stripMetadata: // comment — drop
                     items.append(RemovedItem(kind: .comment, label: "Comment extension", bytes: after - start))
-                case 0xFF: // application extension — keep only NETSCAPE (looping)
+                case 0xFF where options.stripMetadata: // application extension — keep only NETSCAPE (looping)
                     if isLoopingExtension(d, at: blocksStart, end: n) {
                         out.append(contentsOf: d[start..<after])
                     } else {
@@ -86,6 +119,8 @@ enum GIFOptimizer {
             return nil // unrecognized block; don't risk corruption
         }
 
+        // Advanced recompression only accepts complete, unambiguous streams.
+        if options.gifRecompress, !foundTrailer || i != n { return nil }
         return OptimizerOutput(bytes: out, items: items)
     }
 

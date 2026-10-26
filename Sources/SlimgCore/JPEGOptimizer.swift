@@ -1,6 +1,6 @@
-/// Lossless JPEG optimization: drops metadata marker segments (EXIF, XMP,
-/// IPTC/Photoshop, comments) without touching the entropy-coded scan data,
-/// so decoded pixels are byte-for-byte identical.
+/// Lossless JPEG optimization: metadata stripping preserves scan bytes.
+/// Optional entropy recoding preserves and verifies the native quantized DCT
+/// coefficients, sampling, quantization and interpretation metadata.
 ///
 /// Markers we keep:
 ///   - APP0 (JFIF) and APP14 (Adobe) — required to interpret the image.
@@ -10,6 +10,24 @@
 ///   - APP1 (EXIF/XMP), APP3..APP13, APP15 and COM comments.
 enum JPEGOptimizer {
     static func optimize(_ data: [UInt8], options: OptimizationOptions) -> OptimizerOutput? {
+        let stripped = stripMetadata(data, options: options)
+        let base = stripped?.bytes ?? data
+        var best = base
+        var label = "Optimized JPEG Huffman coding"
+        if options.jpegOptimizeHuffman, let candidate = JPEGRecompression.optimize(base), candidate.count < best.count {
+            best = candidate
+        }
+        if options.jpegProgressive, let candidate = JPEGRecompression.optimize(base, progressive: true), candidate.count < best.count {
+            best = candidate
+            label = "Optimized progressive JPEG coding"
+        }
+        guard best.count < base.count else { return stripped }
+        return OptimizerOutput(bytes: best, items: (stripped?.items ?? []) + [
+            RemovedItem(kind: .recompression, label: label, bytes: base.count - best.count),
+        ])
+    }
+
+    private static func stripMetadata(_ data: [UInt8], options: OptimizationOptions) -> OptimizerOutput? {
         guard options.stripMetadata || !options.keepColorProfile else { return nil }
         let n = data.count
         guard n >= 2, data[0] == 0xFF, data[1] == 0xD8 else { return nil }
