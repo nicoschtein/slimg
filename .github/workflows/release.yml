@@ -216,6 +216,12 @@ jobs:
           mkdir -p "$STAGE"
           cp "$CLI_BIN" "$STAGE/slimg"
           if [ -f LICENSE ]; then cp LICENSE "$STAGE/LICENSE"; fi
+          mkdir -p "$STAGE/ThirdPartyLicenses"
+          cp THIRD_PARTY_NOTICES.md "$STAGE/THIRD_PARTY_NOTICES.md"
+          cp Sources/CJPEG/LICENSE.md "$STAGE/ThirdPartyLicenses/libjpeg-turbo-LICENSE.md"
+          cp Sources/CJPEG/README.ijg "$STAGE/ThirdPartyLicenses/libjpeg-turbo-README.ijg"
+          cp Sources/CZopfli/COPYING "$STAGE/ThirdPartyLicenses/Zopfli-COPYING"
+          cp Sources/CZopfli/CONTRIBUTORS "$STAGE/ThirdPartyLicenses/Zopfli-CONTRIBUTORS"
           {
             printf 'Slimg CLI %s - lossless image optimizer for macOS\n' "$VERSION"
             printf 'https://github.com/nicoschtein/slimg\n\n'

@@ -89,9 +89,10 @@ lossless.
   action so you can slim images from the right-click menu or an automation.
 - 💭 **Parallel batch processing** — optimize multiple files concurrently for
   faster folder runs.
-- 💭 **Optional advanced PNG strategies** (still strictly lossless) — e.g.
-  trying multiple filter heuristics and keeping the smallest, or safe bit-depth
-  / palette reductions that preserve every pixel exactly.
+- ✅ **Optional advanced compression** (unreleased; all off by default): PNG
+  filter/zlib strategy search, exact sample/palette reductions, IDAT/profile
+  optimization and Zopfli; JPEG Huffman/progressive coefficient coding; GIF
+  index-preserving LZW recompression. Unsupported cases remain unchanged.
 - 💭 **Mac App Store distribution** — would require sandboxing; the in-place,
   arbitrary-folder workflow needs to be reconciled with the sandbox first.
 
@@ -105,9 +106,10 @@ These are deliberate. Saying no keeps the promise on the tin.
   quantizing PNG palettes to fewer colors, or any "visually lossless" scheme
   that changes pixels contradicts Slimg's founding principle. Use a dedicated
   lossy tool for that.
-- ❌ **Bundling external CLI binaries** (e.g. `pngquant`, `mozjpeg`, `gifsicle`,
-  `optipng`). Slimg is pure Swift with the system `zlib` and stays that way:
-  auditable, small, no third-party binaries to trust or update.
+- ❌ **Requiring external CLI tools** (e.g. `pngquant`, `mozjpeg`, `gifsicle`,
+  `optipng`). Optional compression uses pinned libraries compiled into Slimg;
+  no user installation or runtime download is required. Vendored sources,
+  licenses, and provenance are included in the repository.
 - ❌ **Servers, accounts, uploads, telemetry.** Slimg is 100% on-device and
   stays that way.
 - ❌ **Stripping color profiles by default.** It can shift colors, so it remains
