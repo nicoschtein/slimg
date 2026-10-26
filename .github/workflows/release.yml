@@ -58,6 +58,9 @@ jobs:
           restore-keys: |
             spm-release-${{ runner.os }}-
 
+      - name: Test before packaging
+        run: swift test
+
       # ---------------------------------------------------------------------
       # Generate the app icon (.icns) and web assets before packaging so the
       # bundle carries the proper icon.

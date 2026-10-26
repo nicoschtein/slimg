@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-26
+
 ### Added
 
 - **Seven optional lossless methods**, all disabled by default in the app and
@@ -22,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drops, the file picker and Finder document types. Uses macOS ImageIO to strip
   descriptive metadata without re-encoding image data, preserving orientation
   and color profiles. Unsupported layouts remain unchanged.
+
+### Changed
+
+- Release builds run the full test suite before packaging the app and CLI.
+- The website documents all seven optional compression flags, their default-off
+  behavior, format-specific features, and usage examples.
 
 ## [1.0.0] - 2026-06-15
 
@@ -61,5 +69,6 @@ the input and is never larger than the original.
 - **Test suite** enforcing pixel identity and the "never grows" guarantee.
 - **Universal app bundling** via `Scripts/build-app.sh` (arm64 + x86_64).
 
-[Unreleased]: https://github.com/nicoschtein/slimg/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nicoschtein/slimg/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/nicoschtein/slimg/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nicoschtein/slimg/releases/tag/v1.0.0
