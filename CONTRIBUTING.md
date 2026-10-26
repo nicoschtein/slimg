@@ -33,9 +33,10 @@ In practice this means:
 - **macOS 13 or newer.**
 - **Xcode 15+** (a Swift 5.9+ toolchain). Slimg builds with current Swift
   releases as well. The package declares `swift-tools-version: 5.9`.
-- No other dependencies. Slimg is pure Swift and links the **system `zlib`**
-  (`-lz`) via a tiny C shim (`Sources/CZlib`). There are no third-party
-  packages to fetch.
+- Slimg links **system `zlib`** (`-lz`) and compiles pinned, vendored
+  libjpeg-turbo and Google Zopfli C sources. There are no packages to fetch or
+  external command-line tools required. Preserve upstream notices and source
+  provenance when updating these libraries; see `THIRD_PARTY_NOTICES.md`.
 
 ## Build, test, run
 
@@ -68,6 +69,8 @@ Sources/
                 "never grows" safety net) + JPEGOptimizer / PNGOptimizer /
                 GIFOptimizer / HEICOptimizer + Zlib.swift (zlib wrapper).
   CZlib/        C shim + modulemap that links the system zlib.
+  CJPEG/        Vendored libjpeg-turbo + bounded coefficient-copy bridge.
+  CZopfli/      Vendored Google Zopfli + bounded compression bridge.
   slimg/        CLI: main.swift (arg parsing, file I/O, report printing).
   SlimgApp/     SwiftUI app: SlimgApp (entry), ContentView, OptimizerModel
                 (processing + backups), SettingsView, Theme/BrandMark.

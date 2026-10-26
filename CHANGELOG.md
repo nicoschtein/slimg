@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Seven optional lossless methods**, all disabled by default in the app and
+  CLI: PNG filter/zlib strategy search, Zopfli, exact representation reductions,
+  chunk/profile optimization, JPEG Huffman and progressive coefficient coding,
+  and GIF LZW recompression with unchanged frame indices and animation controls.
+- Pinned libjpeg-turbo and Google Zopfli C sources built into Slimg, with license
+  notices included in app and CLI distributions. No external tools required.
+- Native-precision PNG and independent ImageIO GIF/JPEG verification, savings
+  fixtures, malformed-input checks, and default-off coverage.
+
 - **HEIC/HEIF support** for iPhone photos in the app and CLI, including folder
   drops, the file picker and Finder document types. Uses macOS ImageIO to strip
   descriptive metadata without re-encoding image data, preserving orientation
