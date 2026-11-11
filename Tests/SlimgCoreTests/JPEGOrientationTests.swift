@@ -31,15 +31,17 @@ final class JPEGOrientationTests: XCTestCase {
         let output = NSMutableData()
         let destination = CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil)!
         var properties: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.9]
-        if let orientation { properties[kCGImagePropertyOrientation] = orientation }
+        var tiff: [CFString: Any] = [:]
+        if let orientation {
+            properties[kCGImagePropertyOrientation] = orientation
+            tiff[kCGImagePropertyTIFFOrientation] = orientation
+        }
         if withMetadata {
             properties[kCGImagePropertyExifDictionary] = [
                 kCGImagePropertyExifUserComment: String(repeating: "Slimg metadata payload. ", count: 40),
             ]
-            properties[kCGImagePropertyTIFFDictionary] = [
-                kCGImagePropertyTIFFMake: "Slimg Camera",
-                kCGImagePropertyTIFFModel: "Test Model",
-            ]
+            tiff[kCGImagePropertyTIFFMake] = "Slimg Camera"
+            tiff[kCGImagePropertyTIFFModel] = "Test Model"
             properties[kCGImagePropertyGPSDictionary] = [
                 kCGImagePropertyGPSLatitude: 37.7749,
                 kCGImagePropertyGPSLongitude: 122.4194,
@@ -47,6 +49,7 @@ final class JPEGOrientationTests: XCTestCase {
                 kCGImagePropertyGPSLongitudeRef: "W",
             ]
         }
+        if !tiff.isEmpty { properties[kCGImagePropertyTIFFDictionary] = tiff }
         CGImageDestinationAddImage(destination, makeCGImage(), properties as CFDictionary)
         XCTAssertTrue(CGImageDestinationFinalize(destination))
         return output as Data
@@ -229,7 +232,9 @@ final class JPEGOrientationTests: XCTestCase {
 
     // MARK: - Unchanged behavior
 
-    func testUprightOrMissingOrientationIsDroppedAsBefore() throws {
+    /// Orientation 1, no Orientation tag, or a value outside 1...8 (which
+    /// viewers ignore) does not rotate the image: EXIF is dropped as before.
+    func testUprightMissingOrInvalidOrientationIsDroppedAsBefore() throws {
         let clean = cleanJPEG()
         XCTAssertNil(range(of: Array("Exif\0\0".utf8), in: clean))
         let untouched = Slimg.optimize(Data(clean))
@@ -237,7 +242,7 @@ final class JPEGOrientationTests: XCTestCase {
         XCTAssertEqual([UInt8](untouched.data), clean)
 
         for bigEndian in [false, true] {
-            for value: UInt16? in [1, nil] {
+            for value: UInt16? in [1, nil, 0, 9, 0xFFFF] {
                 let segment = exifSegment(orientation: value, bigEndian: bigEndian)
                 let result = Slimg.optimize(Data(inserting(segment, into: clean)))
                 XCTAssertEqual([UInt8](result.data), clean, "the EXIF segment is dropped whole")
@@ -310,10 +315,6 @@ final class JPEGOrientationTests: XCTestCase {
             ("IFD0 offset inside header", exif(little, le16(42), le32(2), padding)),
             ("unknown byte order", exif([0x49, 0x4D], Array(tiff[2...]))),
             ("bad TIFF magic", exif(little, le16(43), Array(tiff[4...]))),
-            ("orientation out of range",
-             exif(little, le16(42), le32(8), le16(1), orientationEntry(value: 9), le32(0), padding)),
-            ("orientation zero",
-             exif(little, le16(42), le32(8), le16(1), orientationEntry(value: 0), le32(0), padding)),
             ("orientation not SHORT",
              exif(little, le16(42), le32(8), le16(1), orientationEntry(type: 4), le32(0), padding)),
             ("orientation count not 1",
@@ -323,6 +324,9 @@ final class JPEGOrientationTests: XCTestCase {
         ]
 
         for (name, segment) in cases {
+            // The parser itself must reject it: several of these segments are
+            // too small to be rewritten anyway, so the output alone can't tell.
+            XCTAssertEqual(JPEGOptimizer.exifOrientation(segment, tiffStart: 10, end: segment.count), .malformed, name)
             let input = inserting(segment + note, into: clean)
             let result = Slimg.optimize(Data(input))
             XCTAssertEqual([UInt8](result.data), inserting(segment, into: clean),
