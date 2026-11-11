@@ -268,6 +268,11 @@ unchanged.
 - **JPEG** — drops metadata marker segments: APP1 (EXIF/XMP), APP3–APP13,
   APP15, and `COM` comments. APP0 (JFIF) and APP14 (Adobe) are kept because
   they're needed to interpret the image; an APP2 ICC profile is kept by default.
+  When the EXIF block records a rotation or mirroring (Orientation other than
+  1, as camera and phone photos often do), it is replaced by a minimal EXIF
+  segment holding only that Orientation tag, in the original byte order, so the
+  photo still displays upright. If that EXIF structure is malformed or
+  truncated, the segment is kept untouched rather than guessed at.
   The entropy-coded scan data (everything from `SOS` onward) is copied
   byte-for-byte by default. Optional Huffman/progressive optimization reads and
   writes the existing quantized coefficients through libjpeg-turbo without

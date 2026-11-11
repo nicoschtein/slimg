@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **JPEG orientation is preserved** when stripping metadata. Camera and phone
+  photos that store their rotation only in the EXIF Orientation tag no longer
+  appear rotated or mirrored after optimization: the EXIF block is replaced by a
+  minimal one carrying just the Orientation (reported as "EXIF metadata (APP1),
+  orientation kept"). Malformed or truncated EXIF segments are now left as-is.
+
 ## [1.1.0] - 2026-10-26
 
 ### Added
