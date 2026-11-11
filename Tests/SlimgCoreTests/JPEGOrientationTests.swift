@@ -7,24 +7,11 @@ import XCTest
 
 /// EXIF stripping must not change how a JPEG is displayed: a non-default
 /// Orientation tag survives as a minimal EXIF segment.
-final class JPEGOrientationTests: XCTestCase {
+final class JPEGOrientationTests: XCTestCase, JPEGFixtures {
     private let keptLabel = "EXIF metadata (APP1), orientation kept"
     private let removedLabel = "EXIF metadata (APP1)"
 
     // MARK: - Fixtures
-
-    private func makeCGImage(width: Int = 48, height: Int = 32) -> CGImage {
-        let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                space: CGColorSpaceCreateDeviceRGB(),
-                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        context.setFillColor(CGColor(red: 0.15, green: 0.45, blue: 0.80, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        context.setFillColor(CGColor(red: 0.95, green: 0.20, blue: 0.10, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: width / 3, height: height / 2))
-        context.setFillColor(CGColor(red: 0.10, green: 0.85, blue: 0.30, alpha: 1))
-        context.fillEllipse(in: CGRect(x: width / 2, y: height / 4, width: width / 3, height: height / 2))
-        return context.makeImage()!
-    }
 
     /// An ImageIO-written JPEG, optionally with camera-like EXIF/GPS metadata.
     private func encodeJPEG(orientation: Int? = nil, withMetadata: Bool = false) -> Data {
@@ -69,11 +56,6 @@ final class JPEGOrientationTests: XCTestCase {
         return bigEndian ? high + low : low + high
     }
 
-    private func app1(_ payload: [UInt8]) -> [UInt8] {
-        let length = payload.count + 2
-        return [0xFF, 0xE1, UInt8(length >> 8), UInt8(length & 255)] + payload
-    }
-
     /// A complete EXIF APP1 segment whose IFD0 holds an ImageDescription (stored
     /// out of line, to give the segment some bulk) and optionally Orientation.
     private func exifSegment(orientation: UInt16?, bigEndian: Bool, description: Int = 200) -> [UInt8] {
@@ -92,56 +74,6 @@ final class JPEGOrientationTests: XCTestCase {
         tiff += bytes(UInt32(0), bigEndian) // no next IFD
         tiff += [UInt8](repeating: 0x41, count: description) + [0]
         return app1(Array("Exif\0\0".utf8) + tiff)
-    }
-
-    private func comment(_ text: String) -> [UInt8] {
-        let payload = Array(text.utf8)
-        let length = payload.count + 2
-        return [0xFF, 0xFE, UInt8(length >> 8), UInt8(length & 255)] + payload
-    }
-
-    /// Inserts segments after SOI and a leading APP0 (JFIF), where EXIF lives.
-    private func inserting(_ segments: [UInt8], into jpeg: [UInt8]) -> [UInt8] {
-        var index = 2
-        if jpeg.count > 6, jpeg[2] == 0xFF, jpeg[3] == 0xE0 {
-            index = 4 + (Int(jpeg[4]) << 8 | Int(jpeg[5]))
-        }
-        var result = jpeg
-        result.insert(contentsOf: segments, at: index)
-        return result
-    }
-
-    private func orientation(_ data: Data) throws -> Int? {
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
-        let properties = try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
-        return properties[kCGImagePropertyOrientation] as? Int
-    }
-
-    private func properties(_ data: Data) throws -> [CFString: Any] {
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
-        return try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
-    }
-
-    /// Decoded RGBA pixels (stored orientation, not display orientation).
-    private func pixels(_ data: Data) throws -> [UInt8] {
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
-        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
-        var result = [UInt8](repeating: 0, count: image.width * image.height * 4)
-        try result.withUnsafeMutableBytes { buffer in
-            let context = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: image.width,
-                height: image.height, bitsPerComponent: 8, bytesPerRow: image.width * 4,
-                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
-            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        }
-        return result
-    }
-
-    private func range(of needle: [UInt8], in haystack: [UInt8]) -> Range<Int>? {
-        guard !needle.isEmpty, haystack.count >= needle.count else { return nil }
-        for start in 0...(haystack.count - needle.count) where haystack[start] == needle[0] {
-            if Array(haystack[start..<(start + needle.count)]) == needle { return start..<(start + needle.count) }
-        }
-        return nil
     }
 
     /// Byte order marker ("II"/"MM") of the first EXIF APP1 in a JPEG.
@@ -326,7 +258,7 @@ final class JPEGOrientationTests: XCTestCase {
         for (name, segment) in cases {
             // The parser itself must reject it: several of these segments are
             // too small to be rewritten anyway, so the output alone can't tell.
-            XCTAssertEqual(JPEGOptimizer.exifOrientation(segment, tiffStart: 10, end: segment.count), .malformed, name)
+            XCTAssertEqual(JPEGOptimizer.readEXIF(segment, tiffStart: 10, end: segment.count, colorSpace: true), nil, name)
             let input = inserting(segment + note, into: clean)
             let result = Slimg.optimize(Data(input))
             XCTAssertEqual([UInt8](result.data), inserting(segment, into: clean),
