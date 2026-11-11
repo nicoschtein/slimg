@@ -23,7 +23,12 @@ node web/shots/render.mjs       # re-render site/img/*.webp and site/og.png
 ```
 
 Never edit the HTML in `site/` by hand. Change `pages/` or the template in
-`build.py` and rebuild. CI fails when the two disagree.
+`build.py` and rebuild. CI fails when the two disagree, or when `site/` still
+holds a page `build.py` no longer makes (a plain build deletes it).
+
+**On a release,** set `VERSION` in `build.py` (pages write `{{VERSION}}`
+wherever they show it), add the release to `pages/release-notes.html`, and
+rebuild. `YEAR` in `build.py` is the footer's copyright year.
 
 ## Pages
 
@@ -33,6 +38,7 @@ Never edit the HTML in `site/` by hand. Change `pages/` or the template in
 | `/download` | The app (Slimg.dmg) and the command-line tool, with the first-launch steps |
 | `/support` | Getting started, the command line, troubleshooting, questions, requirements, contact form |
 | `/support/sent` | "Message sent." `noindex`, not in the sitemap |
+| `/support/not-sent` | "Message not sent." when a field fails the Worker's checks. `noindex`, not in the sitemap |
 | `/privacy` | Privacy policy, checked against `Sources/` on November 11, 2026 |
 | `/release-notes` | From `CHANGELOG.md`, rewritten for customers |
 
@@ -41,13 +47,22 @@ Where Slimg differs from the recipe, and why:
 - **`/download` exists** because Slimg is a direct-download build: it isn't on
   the Mac App Store (the sandbox doesn't fit its in-place, any-folder
   workflow; see `ROADMAP.md`). The page carries the Gatekeeper step that
-  unnotarized builds need.
+  unnotarized builds need: System Settings > Privacy & Security > Open
+  Anyway, which works on macOS 13 and later (macOS 15 removed the
+  Control-click > Open shortcut).
 - **No store badge.** The nav and the calls to action use a plain Download
   button that goes to `/download`. If Slimg ever ships on the Mac App Store,
   swap in Apple's "Download on the Mac App Store" badge.
 - **The footer says License, not Terms.** Slimg is free and MIT-licensed,
   with no EULA. `/license` redirects to the LICENSE file.
 - **No Purchases section and no Purchase topic.** Nothing is sold.
+- **`/support/not-sent` exists** because the page has no script: when the
+  Worker turns a post away, this page says what to check and that the
+  browser's Back button still has the message, instead of a silent bounce
+  to an empty form.
+- **The honeypot field is `hp_leave_empty`, not `website`.** Browsers and
+  password managers autofill fields named website, which would make real
+  messages vanish as spam.
 - **A "Command line" section on the support page.** It's the reference for
   the `slimg` tool's options.
 - **JSON-LD uses `SoftwareApplication`**, not `MobileApplication`, because
@@ -103,14 +118,17 @@ Cloudflare, one Worker with static assets (`worker/wrangler.toml`):
 - `POST /contact` sends the support form through Cloudflare Email Routing,
   from `form@ladrillostudio.com` to the `CONTACT_TO` secret, with Reply-To
   set to the customer. 5 messages a minute per address; honeypot spam is
-  dropped without a word.
+  dropped without a word. The email is 7-bit MIME with CRLF line ends: the
+  subject is RFC 2047 encoded when it isn't plain ASCII, the body is base64,
+  so any language and any message length up to the form's limit goes
+  through. The server accepts exactly the email addresses the browser does.
 - `site/_headers` sets the CSP (no scripts at all), and caches `/img/*` for a
   year.
 
 ### Before the first deploy
 
-1. Set `namespace_id` in `worker/wrangler.toml` to a number no other studio
-   site's rate limiter uses.
+1. Check that `namespace_id` in `worker/wrangler.toml` (75464) isn't used by
+   another studio site's rate limiter.
 2. Point slimg.app's DNS at Cloudflare. The old site was on GitHub Pages; its
    workflow is gone, so the old pages stay up until DNS moves.
 3. Make sure `form@ladrillostudio.com` can send to the studio inbox through
@@ -146,3 +164,9 @@ rm -rf /private/tmp/slimg-cf
   200, the headers are set, `/support/sent` is `noindex`, a cross-origin post
   gets 403, honeypot posts are dropped, the sixth message in a minute gets
   429, and the redirects resolve. **Not deployed yet.**
+- **November 11, 2026.** Review fixes: email encoding (CRLF, base64 body,
+  encoded subject), the body cap sized for non-ASCII messages, browser-matched
+  email check, `/support/not-sent`, the honeypot rename, the macOS 15
+  Gatekeeper steps, `{{VERSION}}` in pages, and stale-page detection. Checked
+  with `wrangler dev`: multi-line, emoji, 1,500-character Japanese and
+  5,000-character messages all arrive and decode exactly.

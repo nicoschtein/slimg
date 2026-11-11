@@ -81,7 +81,7 @@ slimg --dry-run *.png</code></pre>
     <section class="flush" aria-labelledby="trouble-h">
       <h2 class="sub" id="trouble-h">Troubleshooting</h2>
       <div class="faq">
-        <details><summary>macOS says Slimg can't be opened.</summary><p>Slimg isn't notarized by Apple yet. In Applications, Control-click Slimg, choose Open, then Open again. You only need to do this once.</p></details>
+        <details><summary>macOS says Slimg can't be opened.</summary><p>Slimg isn't notarized by Apple yet. Click Done, then open System Settings &gt; Privacy &amp; Security, scroll down to Security and click Open Anyway next to the note about Slimg. Enter your password and click Open Anyway again. You only need to do this once.</p></details>
         <details><summary>A file says "Already optimal".</summary><p>Slimg couldn't make it any smaller without changing a pixel, so it left the file as it was. Turning on more methods in Settings sometimes finds a little more.</p></details>
         <details><summary>A file says "Unsupported format".</summary><p>Slimg works with JPEG, PNG, GIF, HEIC and HEIF. HEIF files that use a codec other than HEVC, such as AVIF, aren't supported yet.</p></details>
         <details><summary>A file didn't get any smaller.</summary><p>Some files carry no extra data to remove. Images exported for the web are often stripped already.</p></details>
@@ -121,7 +121,7 @@ slimg --dry-run *.png</code></pre>
         <textarea id="c-message" name="message" rows="6" required minlength="2" maxlength="5000"></textarea>
         <label for="c-versions">Slimg and macOS version <span class="opt">(optional)</span></label>
         <input id="c-versions" name="versions" type="text" maxlength="120">
-        <div class="hp" aria-hidden="true"><label for="c-website">Website</label><input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <div class="hp" aria-hidden="true"><label for="c-hp">Leave this empty</label><input id="c-hp" name="hp_leave_empty" type="text" tabindex="-1" autocomplete="off"></div>
         <button type="submit">Send</button>
       </form>
     </section>
