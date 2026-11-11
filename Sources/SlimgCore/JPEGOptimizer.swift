@@ -8,6 +8,10 @@
 ///   - DQT/DHT/SOF/SOS/DRI and all coding tables and scan data.
 /// Markers we drop when `stripMetadata` is set:
 ///   - APP1 (EXIF/XMP), APP3..APP13, APP15 and COM comments.
+///   - Exception: an EXIF APP1 whose Orientation is not 1, or that marks the
+///     image as Adobe RGB (1998) without an embedded ICC profile, is replaced
+///     by a minimal EXIF segment carrying only those tags, so the photo is
+///     still displayed the way it was shot.
 enum JPEGOptimizer {
     static func optimize(_ data: [UInt8], options: OptimizationOptions) -> OptimizerOutput? {
         let stripped = stripMetadata(data, options: options)
@@ -38,6 +42,9 @@ enum JPEGOptimizer {
         out.append(0xD8)
 
         var items = [RemovedItem]()
+        // An embedded profile takes precedence over the EXIF color space marker.
+        // Only needed once an EXIF segment turns up.
+        lazy var keepEXIFColorSpace = options.keepColorProfile && !hasICCProfile(data)
 
         var i = 2
         while i < n {
@@ -81,10 +88,20 @@ enum JPEGOptimizer {
             let segEnd = j + 1 + len // one past the segment
             guard segEnd <= n else { return nil }
 
-            if let info = classify(marker: marker, data: data, payloadStart: payloadStart, payloadEnd: segEnd, options: options) {
-                items.append(RemovedItem(kind: info.kind, label: info.label, bytes: segEnd - markerStart))
-            } else {
+            switch classify(marker: marker, data: data, payloadStart: payloadStart, payloadEnd: segEnd,
+                            options: options, keepEXIFColorSpace: marker == 0xE1 && keepEXIFColorSpace) {
+            case .keep:
                 out.append(contentsOf: data[markerStart..<segEnd])
+            case let .remove(kind, label):
+                items.append(RemovedItem(kind: kind, label: label, bytes: segEnd - markerStart))
+            case let .replace(segment, kind, label):
+                // Only worth it when the replacement is actually smaller.
+                if segment.count < segEnd - markerStart {
+                    out.append(contentsOf: segment)
+                    items.append(RemovedItem(kind: kind, label: label, bytes: segEnd - markerStart - segment.count))
+                } else {
+                    out.append(contentsOf: data[markerStart..<segEnd])
+                }
             }
             i = segEnd
         }
@@ -92,8 +109,32 @@ enum JPEGOptimizer {
         return OptimizerOutput(bytes: out, items: items)
     }
 
-    /// Returns nil to keep the segment, or the removal info to drop it.
+    private enum SegmentAction {
+        case keep
+        case remove(RemovalKind, String)
+        /// Write `segment` (a complete marker segment) in place of the original.
+        case replace([UInt8], RemovalKind, String)
+    }
+
+    /// `keepEXIFColorSpace`: the image's colors depend on the EXIF Adobe RGB
+    /// marker (color profiles are kept and none is embedded).
     private static func classify(
+        marker: UInt8, data: [UInt8], payloadStart: Int, payloadEnd: Int, options: OptimizationOptions,
+        keepEXIFColorSpace: Bool
+    ) -> SegmentAction {
+        guard let info = removal(marker: marker, data: data, payloadStart: payloadStart,
+                                 payloadEnd: payloadEnd, options: options) else { return .keep }
+        guard info.kind == .exif else { return .remove(info.kind, info.label) }
+        guard let essentials = readEXIF(data, tiffStart: payloadStart + exifSignature.count, end: payloadEnd,
+                                        colorSpace: keepEXIFColorSpace) else { return .keep }
+        guard !essentials.isEmpty else { return .remove(info.kind, info.label) }
+        let kept = [essentials.orientation != nil ? "orientation" : nil, essentials.adobeRGB != nil ? "color space" : nil]
+        return .replace(minimalEXIF(essentials), .exif,
+                        "EXIF metadata (APP1), \(kept.compactMap { $0 }.joined(separator: " and ")) kept")
+    }
+
+    /// Returns nil to keep the segment, or the removal info to drop it.
+    private static func removal(
         marker: UInt8, data: [UInt8], payloadStart: Int, payloadEnd: Int, options: OptimizationOptions
     ) -> (kind: RemovalKind, label: String)? {
         switch marker {
@@ -109,7 +150,7 @@ enum JPEGOptimizer {
 
         case 0xE1: // APP1 — EXIF or XMP
             guard options.stripMetadata else { return nil }
-            if startsWith(data, payloadStart, payloadEnd, [0x45, 0x78, 0x69, 0x66, 0x00, 0x00]) {
+            if startsWith(data, payloadStart, payloadEnd, exifSignature) {
                 return (.exif, "EXIF metadata (APP1)")
             }
             if startsWith(data, payloadStart, payloadEnd, Array("http://ns.adobe.com/xap/".utf8)) {
@@ -136,6 +177,231 @@ enum JPEGOptimizer {
         default:
             return nil // DQT, DHT, SOFn, DRI, DAC, etc.
         }
+    }
+
+    // MARK: - EXIF essentials
+
+    /// "Exif\0\0", the APP1 identifier that precedes the TIFF structure.
+    private static let exifSignature: [UInt8] = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00]
+    private static let orientationTag: UInt16 = 0x0112
+    private static let exifIFDTag: UInt16 = 0x8769
+    private static let colorSpaceTag: UInt16 = 0xA001
+    private static let interopIFDTag: UInt16 = 0xA005
+    private static let interopIndexTag: UInt16 = 0x0001
+    private static let adobeRGBIndex: [UInt8] = Array("R03".utf8)
+
+    /// The parts of an EXIF segment that change how the image is displayed.
+    struct EXIFEssentials: Equatable {
+        var bigEndian: Bool
+        /// 2...8 when the image is rotated or mirrored; nil when absent, 1, or a
+        /// value outside 1...8 (which viewers ignore).
+        var orientation: UInt16?
+        /// InteroperabilityIndex "R03": the DCF marker for Adobe RGB (1998),
+        /// used by cameras that embed no ICC profile. Nil when absent.
+        var adobeRGB: AdobeRGBMarker?
+
+        var isEmpty: Bool { orientation == nil && adobeRGB == nil }
+    }
+
+    /// The "R03" index is kept with the ColorSpace value found beside it (DCF
+    /// pairs it with Uncalibrated), so the pair reads exactly as before.
+    struct AdobeRGBMarker: Equatable {
+        /// The Exif IFD's ColorSpace, or nil when that tag is absent.
+        var colorSpace: UInt16?
+
+        /// The standard DCF pairing: ColorSpace Uncalibrated.
+        static let dcf = AdobeRGBMarker(colorSpace: 0xFFFF)
+    }
+
+    private struct MalformedTIFF: Error {}
+
+    private struct TIFFEntry {
+        let tag: UInt16, type: UInt16, count: UInt32
+        /// Offset of the 4-byte value field, relative to the TIFF header.
+        let valueOffset: Int
+    }
+
+    /// Bounds-checked reads from the TIFF structure in `bytes[start..<start + length]`.
+    private struct TIFFReader {
+        let bytes: [UInt8], start: Int, length: Int, bigEndian: Bool
+
+        func u16(_ offset: Int) throws -> UInt16 {
+            guard offset >= 0, offset + 2 <= length else { throw MalformedTIFF() }
+            let a = UInt16(bytes[start + offset]), b = UInt16(bytes[start + offset + 1])
+            return bigEndian ? (a << 8 | b) : (b << 8 | a)
+        }
+
+        func u32(_ offset: Int) throws -> UInt32 {
+            let first = UInt32(try u16(offset)), second = UInt32(try u16(offset + 2))
+            return bigEndian ? (first << 16 | second) : (second << 16 | first)
+        }
+
+        /// The entries of the IFD at `offset`, which must all be present, and,
+        /// with `requireNext`, the 4-byte next-IFD offset that follows them.
+        func ifd(at offset: Int, requireNext: Bool = true) throws -> [TIFFEntry] {
+            guard offset >= 8, offset <= length - 2 else { throw MalformedTIFF() }
+            let count = Int(try u16(offset))
+            guard offset + 2 + count * 12 + (requireNext ? 4 : 0) <= length else { throw MalformedTIFF() }
+            return try (0..<count).map { index in
+                let entry = offset + 2 + index * 12
+                return TIFFEntry(tag: try u16(entry), type: try u16(entry + 2), count: try u32(entry + 4),
+                                 valueOffset: entry + 8)
+            }
+        }
+
+        /// The entries of the sub-IFD a pointer entry (LONG or IFD, count 1)
+        /// leads to, or nil when it points beyond the TIFF data: no reader can
+        /// follow it there, so whatever it would hold has no effect.
+        /// `nonStandard` is set when reaching it took leniency a strict reader
+        /// might not grant: an IFD-type pointer, or no next-IFD offset.
+        func subIFD(_ entry: TIFFEntry, nonStandard: inout Bool) throws -> [TIFFEntry]? {
+            guard entry.type == 4 || entry.type == 13, entry.count == 1 else { throw MalformedTIFF() }
+            let offset = Int(try u32(entry.valueOffset))
+            guard offset < length - 1 else { return nil }
+            if entry.type != 4 { nonStandard = true }
+            if let entries = try? ifd(at: offset) { return entries }
+            nonStandard = true
+            return try ifd(at: offset, requireNext: false)
+        }
+    }
+
+    /// The single entry with `tag`, nil when absent. Duplicates are ambiguous.
+    private static func unique(_ tag: UInt16, in entries: [TIFFEntry]) throws -> TIFFEntry? {
+        let matches = entries.filter { $0.tag == tag }
+        guard matches.count <= 1 else { throw MalformedTIFF() }
+        return matches.first
+    }
+
+    /// Reads the display-relevant EXIF tags from the TIFF structure in
+    /// `d[tiffStart..<end]`: Orientation from IFD0 and, when `colorSpace` is
+    /// set, the Adobe RGB marker from the Exif and Interoperability IFDs.
+    /// Returns nil when anything it needs can't be read with confidence, so the
+    /// caller keeps the original segment instead of guessing.
+    static func readEXIF(_ d: [UInt8], tiffStart: Int, end: Int, colorSpace: Bool) -> EXIFEssentials? {
+        try? parseEXIF(d, tiffStart: tiffStart, end: end, colorSpace: colorSpace)
+    }
+
+    private static func parseEXIF(_ d: [UInt8], tiffStart: Int, end: Int, colorSpace: Bool) throws -> EXIFEssentials {
+        guard tiffStart >= 0, end <= d.count, end - tiffStart >= 8 else { throw MalformedTIFF() }
+        let bigEndian: Bool
+        switch (d[tiffStart], d[tiffStart + 1]) {
+        case (0x4D, 0x4D): bigEndian = true   // "MM"
+        case (0x49, 0x49): bigEndian = false  // "II"
+        default: throw MalformedTIFF()
+        }
+        let tiff = TIFFReader(bytes: d, start: tiffStart, length: end - tiffStart, bigEndian: bigEndian)
+        guard try tiff.u16(2) == 42 else { throw MalformedTIFF() }
+        let ifd0 = try tiff.ifd(at: Int(try tiff.u32(4)))
+        var essentials = EXIFEssentials(bigEndian: bigEndian, orientation: nil, adobeRGB: nil)
+
+        if let entry = try unique(orientationTag, in: ifd0) {
+            // Exactly one SHORT value, stored inline; anything else is ambiguous.
+            guard entry.type == 3, entry.count == 1 else { throw MalformedTIFF() }
+            let value = try tiff.u16(entry.valueOffset)
+            // Values outside 2...8 do not rotate the image.
+            if (2...8).contains(value) { essentials.orientation = value }
+        }
+
+        // Where the marker could only be reached leniently, readers may
+        // disagree about it; rewriting it canonically could then add Adobe RGB
+        // where a strict reader saw none, so the original segment is kept.
+        var nonStandard = false
+        guard colorSpace, let exifPointer = try unique(exifIFDTag, in: ifd0),
+              let exifIFD = try tiff.subIFD(exifPointer, nonStandard: &nonStandard) else { return essentials }
+        var space: UInt16?
+        if let entry = try unique(colorSpaceTag, in: exifIFD) {
+            guard entry.type == 3, entry.count == 1 else { throw MalformedTIFF() }
+            space = try tiff.u16(entry.valueOffset)
+        }
+        guard let interopPointer = try unique(interopIFDTag, in: exifIFD),
+              let interop = try tiff.subIFD(interopPointer, nonStandard: &nonStandard) else { return essentials }
+        guard let index = try unique(interopIndexTag, in: interop) else { return essentials }
+        // An ASCII index such as "R03\0" fits inline in the value field; the
+        // standard form includes the NUL.
+        guard index.type == 2, (3...4).contains(index.count) else { throw MalformedTIFF() }
+        let value = tiffStart + index.valueOffset
+        guard Array(d[value..<(value + 3)]) == adobeRGBIndex else { return essentials }
+        guard !nonStandard, index.count == 4 else { throw MalformedTIFF() }
+        essentials.adobeRGB = AdobeRGBMarker(colorSpace: space)
+        return essentials
+    }
+
+    /// A complete APP1 segment holding only `essentials`, in its byte order:
+    /// IFD0 with Orientation and, for Adobe RGB, an Exif IFD with the original
+    /// ColorSpace (if any) whose Interoperability IFD has index "R03". No
+    /// next IFD.
+    static func minimalEXIF(_ essentials: EXIFEssentials) -> [UInt8] {
+        let bigEndian = essentials.bigEndian
+        func u16(_ v: UInt16) -> [UInt8] {
+            bigEndian ? [UInt8(v >> 8), UInt8(v & 0xFF)] : [UInt8(v & 0xFF), UInt8(v >> 8)]
+        }
+        func u32(_ v: UInt32) -> [UInt8] {
+            bigEndian ? u16(UInt16(v >> 16)) + u16(UInt16(v & 0xFFFF))
+                      : u16(UInt16(v & 0xFFFF)) + u16(UInt16(v >> 16))
+        }
+        func entry(_ tag: UInt16, _ type: UInt16, _ value: [UInt8]) -> [UInt8] {
+            u16(tag) + u16(type) + u32(1) + value  // value: 4 bytes, left-aligned
+        }
+        func pointer(_ tag: UInt16, to offset: Int) -> [UInt8] { entry(tag, 4, u32(UInt32(offset))) }
+        func ifd(_ entries: [[UInt8]]) -> [UInt8] {
+            u16(UInt16(entries.count)) + entries.joined() + u32(0)  // no next IFD
+        }
+        func size(_ entryCount: Int) -> Int { 2 + entryCount * 12 + 4 }
+
+        var ifd0 = [[UInt8]]()
+        if let orientation = essentials.orientation {
+            ifd0.append(entry(orientationTag, 3, u16(orientation) + u16(0)))
+        }
+        var tiff: [UInt8] = bigEndian ? [0x4D, 0x4D] : [0x49, 0x49]
+        tiff += u16(42) + u32(8)  // IFD0 at offset 8
+        if let marker = essentials.adobeRGB {
+            var exif = [[UInt8]]()
+            if let space = marker.colorSpace { exif.append(entry(colorSpaceTag, 3, u16(space) + u16(0))) }
+            let exifOffset = 8 + size(ifd0.count + 1)
+            let interopOffset = exifOffset + size(exif.count + 1)
+            ifd0.append(pointer(exifIFDTag, to: exifOffset))
+            exif.append(pointer(interopIFDTag, to: interopOffset))
+            tiff += ifd(ifd0)
+            tiff += ifd(exif)
+            var index = u16(interopIndexTag) + u16(2) + u32(4)
+            index += adobeRGBIndex + [0]  // "R03\0", inline
+            tiff += ifd([index])
+        } else {
+            tiff += ifd(ifd0)
+        }
+        let payload = exifSignature + tiff
+        let length = payload.count + 2
+        return [0xFF, 0xE1, UInt8(length >> 8), UInt8(length & 0xFF)] + payload
+    }
+
+    /// Orientation-only convenience for ``minimalEXIF(_:)``.
+    static func minimalEXIF(orientation: UInt16, bigEndian: Bool) -> [UInt8] {
+        minimalEXIF(EXIFEssentials(bigEndian: bigEndian, orientation: orientation, adobeRGB: nil))
+    }
+
+    /// Size of an ICC profile header; a chunk shorter than this is unusable.
+    private static let iccHeaderSize = 128
+
+    /// Whether an APP2 ICC profile with at least a full profile header appears
+    /// among the header segments. An empty or truncated chunk is ignored by
+    /// decoders, which then fall back to the EXIF color space marker.
+    private static func hasICCProfile(_ d: [UInt8]) -> Bool {
+        var i = 2
+        while i < d.count, d[i] == 0xFF {
+            var j = i
+            while j < d.count, d[j] == 0xFF { j += 1 }
+            guard j + 2 < d.count else { return false }
+            let marker = d[j]
+            if marker == 0xDA || marker == 0xD9 { return false }  // scan data or end
+            if marker == 0x01 || (0xD0...0xD8).contains(marker) { i = j + 1; continue }
+            let length = Int(d[j + 1]) << 8 | Int(d[j + 2])
+            guard length >= 2, j + 1 + length <= d.count else { return false }
+            // Payload: "ICC_PROFILE\0", sequence number, chunk count, profile data.
+            if marker == 0xE2, isICCProfile(d, from: j + 3, to: j + 1 + length),
+               length - 2 - (iccSignature.count + 3) >= iccHeaderSize { return true }
+            i = j + 1 + length
+        }
+        return false
     }
 
     private static let iccSignature: [UInt8] = Array("ICC_PROFILE".utf8)
