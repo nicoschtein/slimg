@@ -251,12 +251,16 @@ enum JPEGOptimizer {
 
         /// The entries of the sub-IFD a pointer entry (LONG or IFD, count 1)
         /// leads to, or nil when it points beyond the TIFF data: no reader can
-        /// follow it there, so whatever it would hold has no effect. Its
-        /// next-IFD offset is irrelevant and not required.
-        func subIFD(_ entry: TIFFEntry) throws -> [TIFFEntry]? {
+        /// follow it there, so whatever it would hold has no effect.
+        /// `nonStandard` is set when reaching it took leniency a strict reader
+        /// might not grant: an IFD-type pointer, or no next-IFD offset.
+        func subIFD(_ entry: TIFFEntry, nonStandard: inout Bool) throws -> [TIFFEntry]? {
             guard entry.type == 4 || entry.type == 13, entry.count == 1 else { throw MalformedTIFF() }
             let offset = Int(try u32(entry.valueOffset))
             guard offset < length - 1 else { return nil }
+            if entry.type != 4 { nonStandard = true }
+            if let entries = try? ifd(at: offset) { return entries }
+            nonStandard = true
             return try ifd(at: offset, requireNext: false)
         }
     }
@@ -298,22 +302,27 @@ enum JPEGOptimizer {
             if (2...8).contains(value) { essentials.orientation = value }
         }
 
+        // Where the marker could only be reached leniently, readers may
+        // disagree about it; rewriting it canonically could then add Adobe RGB
+        // where a strict reader saw none, so the original segment is kept.
+        var nonStandard = false
         guard colorSpace, let exifPointer = try unique(exifIFDTag, in: ifd0),
-              let exifIFD = try tiff.subIFD(exifPointer) else { return essentials }
+              let exifIFD = try tiff.subIFD(exifPointer, nonStandard: &nonStandard) else { return essentials }
         var space: UInt16?
         if let entry = try unique(colorSpaceTag, in: exifIFD) {
             guard entry.type == 3, entry.count == 1 else { throw MalformedTIFF() }
             space = try tiff.u16(entry.valueOffset)
         }
         guard let interopPointer = try unique(interopIFDTag, in: exifIFD),
-              let interop = try tiff.subIFD(interopPointer) else { return essentials }
+              let interop = try tiff.subIFD(interopPointer, nonStandard: &nonStandard) else { return essentials }
         guard let index = try unique(interopIndexTag, in: interop) else { return essentials }
-        // An ASCII index such as "R03\0" fits inline in the value field.
+        // An ASCII index such as "R03\0" fits inline in the value field; the
+        // standard form includes the NUL.
         guard index.type == 2, (3...4).contains(index.count) else { throw MalformedTIFF() }
         let value = tiffStart + index.valueOffset
-        if Array(d[value..<(value + 3)]) == adobeRGBIndex {
-            essentials.adobeRGB = AdobeRGBMarker(colorSpace: space)
-        }
+        guard Array(d[value..<(value + 3)]) == adobeRGBIndex else { return essentials }
+        guard !nonStandard, index.count == 4 else { throw MalformedTIFF() }
+        essentials.adobeRGB = AdobeRGBMarker(colorSpace: space)
         return essentials
     }
 

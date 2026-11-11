@@ -276,7 +276,8 @@ unchanged.
   index `R03`, normally with ColorSpace "Uncalibrated"); while color profiles
   are kept and none is embedded, that marker stays in the minimal segment so
   colors render as before. `--strip-color` drops it with the rest of EXIF. If
-  the EXIF structures involved are malformed or truncated, the segment is kept
+  the EXIF structures involved are malformed, truncated, or carry the marker
+  in a non-standard layout readers may disagree on, the segment is kept
   untouched rather than guessed at; a pointer leading past the end of the EXIF
   data counts as absent, since no reader can follow it.
   The entropy-coded scan data (everything from `SOS` onward) is copied
