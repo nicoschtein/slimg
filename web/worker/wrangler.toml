@@ -13,6 +13,7 @@ name = "CONTACT"
 
 [[ratelimits]]
 name = "LIMITER"
-# Unique per Ladrillo site: pick a number no other studio site uses before deploying.
-namespace_id = "UNIQUE-NUMBER-PER-SITE"
+# Unique per Ladrillo site. 75464 spells "slimg" on a phone keypad; check no
+# other studio site uses it (web/README.md).
+namespace_id = "75464"
 simple = { limit = 5, period = 60 }

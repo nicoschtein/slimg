@@ -108,8 +108,10 @@ GUI) and the **`slimg`** command-line tool. Requires **macOS 13 or newer**.
 
 > **First launch (open source, ad-hoc signed builds):** Slimg is open source.
 > If a build is not yet Developer-ID notarized, macOS Gatekeeper may refuse to
-> open it on the first try. **Right-click (or Control-click) the app → Open →
-> Open** to launch it the first time. You only need to do this once. Notarized,
+> open it on the first try. Click **Done**, then open **System Settings →
+> Privacy & Security**, scroll to **Security** and click **Open Anyway** next to
+> the Slimg message, confirming with your password. (On macOS 15 and later the
+> old right-click → Open shortcut no longer works.) You only need to do this once. Notarized,
 > Developer-ID-signed builds are on the [roadmap](ROADMAP.md).
 
 ### 2. Download the CLI
