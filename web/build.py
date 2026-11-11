@@ -23,7 +23,11 @@ SITE = ROOT / "site"
 DOMAIN = "slimg.app"
 ORIGIN = f"https://{DOMAIN}"
 APP = "Slimg"
+# The current release. Pages write {{VERSION}} wherever they show it, so a
+# release changes this line and nothing else (plus a release-notes entry).
 VERSION = "1.1.0"
+# The footer's copyright year. Change it on the first build of a new year.
+YEAR = "2026"
 
 OG_ALT = "The Slimg icon and the line: Slim your images. Lose nothing. Lossless image optimizer for Mac."
 
@@ -59,6 +63,14 @@ PAGES_META = [
         "path": "/support/sent",
         "title": "Message sent. Slimg Support",
         "description": "Your message to Slimg support was sent.",
+        "noindex": True,
+    },
+    {
+        "src": "support-not-sent.html",
+        "out": "support/not-sent.html",
+        "path": "/support/not-sent",
+        "title": "Message not sent. Slimg Support",
+        "description": "Your message to Slimg support was not sent. Check the form and try again.",
         "noindex": True,
     },
     {
@@ -114,7 +126,7 @@ TEMPLATE = """<!doctype html>
   <div class="wrap">
     <div class="links"><a href="/privacy">Privacy</a><a href="/support">Support</a><a href="/license">License</a><a href="/release-notes">Release notes</a></div>
     <a class="ladrillo-app" href="https://ladrillostudio.com"><svg viewBox="0 0 100 50" aria-hidden="true"><rect x="0" y="27" width="48" height="23" rx="3"/><rect x="52" y="27" width="48" height="23" rx="3"/><rect x="26" y="0" width="48" height="23" rx="3"/></svg><span>A Ladrillo Studio app</span></a>
-    <span>© 2026 Ladrillo Studio</span>
+    <span>© {year} Ladrillo Studio</span>
     <p class="tm">Apple, Mac, macOS, Finder, iPhone and Apple silicon are trademarks of Apple Inc., registered in the U.S. and other countries. Intel is a trademark of Intel Corporation.</p>
   </div>
 </footer>
@@ -139,6 +151,7 @@ JSONLD = {
 ROBOTS = f"""User-agent: *
 Allow: /
 Disallow: /support/sent
+Disallow: /support/not-sent
 
 Sitemap: {ORIGIN}/sitemap.xml
 """
@@ -174,7 +187,7 @@ COPIES = {
 
 
 def render(meta):
-    body = (PAGES / meta["src"]).read_text(encoding="utf-8")
+    body = (PAGES / meta["src"]).read_text(encoding="utf-8").replace("{{VERSION}}", VERSION)
     path = meta["path"]
     url = ORIGIN + path
     is_home = path == "/"
@@ -193,6 +206,7 @@ def render(meta):
         url=url,
         origin=ORIGIN,
         app=APP,
+        year=YEAR,
         og_alt=html.escape(OG_ALT),
         jsonld=jsonld,
         home="" if is_home else "/",
@@ -224,10 +238,20 @@ def outputs():
     return files
 
 
+def leftovers(files):
+    """HTML pages in web/site/ that build.py no longer makes (a page renamed
+    or removed). Everything else in web/site/ is edited by hand."""
+    return sorted(
+        str(path.relative_to(SITE)) for path in SITE.rglob("*.html") if str(path.relative_to(SITE)) not in files
+    )
+
+
 def main(argv):
     files = outputs()
+    extra = leftovers(files)
     if "--check" in argv:
         stale = [name for name, data in files.items() if not (SITE / name).exists() or (SITE / name).read_bytes() != data]
+        stale += [f"{name} (no longer generated; delete it)" for name in extra]
         if stale:
             print("web/site/ is out of date. Run: python3 web/build.py", file=sys.stderr)
             for name in stale:
@@ -240,6 +264,9 @@ def main(argv):
         target = SITE / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
+    for name in extra:
+        (SITE / name).unlink()
+        print(f"Deleted {name}, which no page makes any more")
     print(f"Wrote {len(files)} files to {SITE.relative_to(ROOT.parent)}/")
 
     if "--serve" in argv:

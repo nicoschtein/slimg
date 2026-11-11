@@ -23,7 +23,7 @@ for (const [scene, name] of Object.entries(scenes)) {
   const png = path.join(tmp, `${name}.png`);
   await page.screenshot({ path: png, omitBackground: true });
   if (scene === "main") console.log("totals", JSON.stringify(await page.evaluate(() => window.SUMMARY)));
-  execFileSync("python3", ["-I", path.join(here, "webp.py"), png, path.join(img, `${name}.webp`)], { stdio: "inherit" });
+  execFileSync("python3", [path.join(here, "webp.py"), png, path.join(img, `${name}.webp`)], { stdio: "inherit" });
 }
 
 const og = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
