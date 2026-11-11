@@ -81,7 +81,7 @@ Scripts/
   build-app.sh      Assembles Slimg.app from the SwiftPM build product.
 Resources/          Info.plist and the app icon.
 brand/              Brand guidelines (BRAND.md), logomark, wordmark, icon.
-site/               Landing page sources for slimg.app.
+web/                The slimg.app website and its Cloudflare Worker (see web/README.md).
 ```
 
 The public API lives in `Sources/SlimgCore/Slimg.swift`:

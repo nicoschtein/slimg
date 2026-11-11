@@ -1,0 +1,96 @@
+<main id="main" class="support-page">
+  <div class="wrap">
+    <header class="page-head">
+      <span class="eyebrow">Support</span>
+      <h1>How can we help?</h1>
+    </header>
+
+    <section class="flush" aria-labelledby="start-h">
+      <h2 class="sub" id="start-h">Getting started</h2>
+      <ol class="steps">
+        <li><h3>Install Slimg</h3><p>Get Slimg.dmg from the <a href="/download">download page</a> and drag Slimg to Applications.</p></li>
+        <li><h3>Drop your images</h3><p>Drag photos, screenshots or whole folders onto the Slimg window, or click <b>Add Images</b>. Slimg starts right away.</p></li>
+        <li><h3>Check the savings</h3><p>Each row shows how much smaller the file got. Click the report button on a row to see what came out.</p></li>
+        <li><h3>Keep or clear the originals</h3><p>With <b>Keep originals</b> on, the old file stays next to the new one as name.bak.jpg. Delete those once you're happy.</p></li>
+      </ol>
+      <div class="tip-box">
+        <svg class="tip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <p>Want more savings? Open <b>Slimg &gt; Settings</b> and turn on the methods under <b>Additional lossless optimization</b>. They take longer and never change a pixel.</p>
+      </div>
+    </section>
+
+    <section class="flush" id="command-line" aria-labelledby="cli-h">
+      <h2 class="sub" id="cli-h">The command line</h2>
+      <p class="tip">slimg works on the files you name and changes them in place. Add <code>--backup</code> to keep the originals.</p>
+      <pre class="code"><code>slimg --backup --report photo.jpg
+slimg --dry-run *.png</code></pre>
+      <table class="flags">
+        <caption>Options</caption>
+        <tbody>
+          <tr><th scope="row"><code>--dry-run</code></th><td>Show the savings without writing any file.</td></tr>
+          <tr><th scope="row"><code>--backup</code>, <code>--copy</code></th><td>Keep each original as name.bak.ext.</td></tr>
+          <tr><th scope="row"><code>--report</code>, <code>-v</code></th><td>List what was removed from each file.</td></tr>
+          <tr><th scope="row"><code>--keep-metadata</code></th><td>Leave camera, XMP and IPTC data and comments in.</td></tr>
+          <tr><th scope="row"><code>--strip-color</code></th><td>Also remove color profiles. Colors can look different afterward. HEIC profiles always stay.</td></tr>
+          <tr><th scope="row"><code>--no-recompress</code></th><td>Skip the standard PNG recompression.</td></tr>
+          <tr><th scope="row"><code>--deep-png</code></th><td>Try more PNG filters and compression strategies.</td></tr>
+          <tr><th scope="row"><code>--zopfli-png</code></th><td>Search hardest for the smallest PNG. Much slower.</td></tr>
+          <tr><th scope="row"><code>--reduce-png</code></th><td>Store PNG colors in fewer bits when every value stays exact.</td></tr>
+          <tr><th scope="row"><code>--optimize-png</code></th><td>Merge PNG image chunks and recompress kept color profiles.</td></tr>
+          <tr><th scope="row"><code>--optimize-jpeg</code></th><td>Pack the existing JPEG data with better Huffman tables.</td></tr>
+          <tr><th scope="row"><code>--progressive-jpeg</code></th><td>Try progressive JPEG, kept only when smaller.</td></tr>
+          <tr><th scope="row"><code>--recompress-gif</code></th><td>Repack GIF frames with the animation unchanged.</td></tr>
+        </tbody>
+      </table>
+      <p class="tip">slimg doesn't open folders by itself. To work through one, let your shell list the files, for example <code>slimg **/*.png</code> in zsh.</p>
+    </section>
+
+    <section class="flush" aria-labelledby="trouble-h">
+      <h2 class="sub" id="trouble-h">Troubleshooting</h2>
+      <div class="faq">
+        <details><summary>macOS says Slimg can't be opened.</summary><p>Slimg isn't notarized by Apple yet. In Applications, Control-click Slimg, choose Open, then Open again. You only need to do this once.</p></details>
+        <details><summary>A file says "Already optimal".</summary><p>Slimg couldn't make it any smaller without changing a pixel, so it left the file as it was. Turning on more methods in Settings sometimes finds a little more.</p></details>
+        <details><summary>A file says "Unsupported format".</summary><p>Slimg works with JPEG, PNG, GIF, HEIC and HEIF. HEIF files that use a codec other than HEVC, such as AVIF, aren't supported yet.</p></details>
+        <details><summary>A file didn't get any smaller.</summary><p>Some files carry no extra data to remove. Images exported for the web are often stripped already.</p></details>
+        <details><summary>Colors look different after Slimg.</summary><p>Check that Strip color profiles is off in Settings, or that you didn't pass --strip-color. Slimg keeps color profiles unless you ask it to remove them.</p></details>
+        <details><summary>I see a lot of .bak files.</summary><p>Those are your originals, kept because Keep originals is on. Delete them when you no longer need them, or turn the switch off to change files in place.</p></details>
+        <details><summary>The slimg command isn't found.</summary><p>Check that slimg is in a folder on your path, such as /usr/local/bin. Running <code>which slimg</code> shows where your shell finds it.</p></details>
+      </div>
+    </section>
+
+    <section class="flush" aria-labelledby="qa-h">
+      <h2 class="sub" id="qa-h">Questions</h2>
+      <div class="faq">
+        <details><summary>Does Slimg change how my images look?</summary><p>No. Open the new file and every pixel has the same value as before. Slimg removes data you can't see and stores the same pixels in less space.</p></details>
+        <details><summary>Can a file come out bigger?</summary><p>No. If Slimg can't make a file smaller, the file stays exactly as it was.</p></details>
+        <details><summary>Does Slimg upload my images?</summary><p>No. Everything happens on your Mac, and Slimg works with Wi-Fi off.</p></details>
+        <details><summary>What does Slimg remove?</summary><p>Camera details and location (EXIF), Adobe XMP and IPTC data, comments and timestamps. It keeps the color profile and everything needed to decode the picture.</p></details>
+        <details><summary>How is this different from TinyPNG?</summary><p>TinyPNG and similar tools change pixels to get smaller files, and many upload your images to do it. Slimg never changes a pixel and never uploads. Its savings are smaller, and the picture is exactly the one you started with.</p></details>
+        <details><summary>Can I run Slimg on the same folder again?</summary><p>Yes. Files that are already slim are left alone, and nothing gets worse with each run.</p></details>
+        <details><summary>Does it work with photos from my iPhone?</summary><p>Yes. Slimg removes location and camera data from HEIC photos without re-encoding the picture. The orientation and color profile stay.</p></details>
+      </div>
+    </section>
+
+    <section class="flush" aria-labelledby="req-h">
+      <h2 class="sub" id="req-h">System requirements</h2>
+      <p class="tip">macOS 13 Ventura or later, on a Mac with Apple silicon or an Intel processor.</p>
+    </section>
+
+    <section class="contact" id="contact" aria-labelledby="contact-h">
+      <h2 id="contact-h">Contact</h2>
+      <p>Send us a message and we'll reply by email.</p>
+      <form class="contact-form" method="post" action="/contact">
+        <label for="c-email">Email</label>
+        <input id="c-email" name="email" type="email" autocomplete="email" required maxlength="254">
+        <label for="c-topic">Topic</label>
+        <select id="c-topic" name="topic" required><option>Problem</option><option>Question</option><option>Idea</option></select>
+        <label for="c-message">Message</label>
+        <textarea id="c-message" name="message" rows="6" required minlength="2" maxlength="5000"></textarea>
+        <label for="c-versions">Slimg and macOS version <span class="opt">(optional)</span></label>
+        <input id="c-versions" name="versions" type="text" maxlength="120">
+        <div class="hp" aria-hidden="true"><label for="c-website">Website</label><input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </div>
+</main>
