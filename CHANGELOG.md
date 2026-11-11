@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appear rotated or mirrored after optimization: the EXIF block is replaced by a
   minimal one carrying just the Orientation (reported as "EXIF metadata (APP1),
   orientation kept"). Malformed or truncated EXIF segments are now left as-is.
+- **JPEG Adobe RGB color is preserved** when stripping metadata. Photos from
+  cameras set to Adobe RGB that embed no ICC profile mark their color space only
+  in EXIF (Interoperability index "R03"); that marker is now kept in the minimal
+  EXIF segment while color profiles are kept, so colors no longer shift toward
+  sRGB. It is dropped when an ICC profile is embedded or with `--strip-color`.
 
 ## [1.1.0] - 2026-10-26
 

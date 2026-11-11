@@ -271,8 +271,13 @@ unchanged.
   When the EXIF block records a rotation or mirroring (Orientation other than
   1, as camera and phone photos often do), it is replaced by a minimal EXIF
   segment holding only that Orientation tag, in the original byte order, so the
-  photo still displays upright. If that EXIF structure is malformed or
-  truncated, the segment is kept untouched rather than guessed at.
+  photo still displays upright. Likewise, a camera that shot in Adobe RGB
+  without embedding an ICC profile marks that only in EXIF (Interoperability
+  index `R03`, normally with ColorSpace "Uncalibrated"); while color profiles
+  are kept and none is embedded, that marker stays in the minimal segment so
+  colors render as before. `--strip-color` drops it with the rest of EXIF. If
+  the EXIF structures involved are malformed or truncated, the segment is kept
+  untouched rather than guessed at.
   The entropy-coded scan data (everything from `SOS` onward) is copied
   byte-for-byte by default. Optional Huffman/progressive optimization reads and
   writes the existing quantized coefficients through libjpeg-turbo without
