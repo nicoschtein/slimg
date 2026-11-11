@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /support/sent
+
+Sitemap: https://slimg.app/sitemap.xml

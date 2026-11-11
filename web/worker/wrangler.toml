@@ -1,0 +1,18 @@
+name = "slimg-site"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+routes = [{ pattern = "slimg.app", custom_domain = true }]
+
+[assets]
+directory = "../site"
+binding = "ASSETS"
+run_worker_first = ["/contact", "/download/*", "/source", "/license"]
+
+[[send_email]]
+name = "CONTACT"
+
+[[ratelimits]]
+name = "LIMITER"
+# Unique per Ladrillo site: pick a number no other studio site uses before deploying.
+namespace_id = "UNIQUE-NUMBER-PER-SITE"
+simple = { limit = 5, period = 60 }
