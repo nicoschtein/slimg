@@ -180,10 +180,11 @@ enum JPEGOptimizer {
     private static let exifSignature: [UInt8] = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00]
     private static let orientationTag: UInt16 = 0x0112
 
-    private enum EXIFOrientation {
+    enum EXIFOrientation: Equatable {
         /// The TIFF structure could not be read with confidence.
         case malformed
-        /// IFD0 has no Orientation tag, or it is 1 (already upright).
+        /// IFD0 has no usable Orientation: missing, 1 (already upright), or a
+        /// value outside 1...8, which viewers ignore.
         case absentOrUpright
         /// Orientation 2...8, plus whether the source TIFF is big-endian.
         case rotated(UInt16, Bool)
@@ -192,7 +193,7 @@ enum JPEGOptimizer {
     /// Reads the Orientation tag from IFD0 of the TIFF structure in
     /// `d[tiffStart..<end]`. Anything unexpected is reported as malformed so the
     /// caller keeps the original segment instead of guessing.
-    private static func exifOrientation(_ d: [UInt8], tiffStart: Int, end: Int) -> EXIFOrientation {
+    static func exifOrientation(_ d: [UInt8], tiffStart: Int, end: Int) -> EXIFOrientation {
         let length = end - tiffStart
         guard tiffStart >= 0, end <= d.count, length >= 8 else { return .malformed }
 
@@ -227,12 +228,9 @@ enum JPEGOptimizer {
             guard orientation == nil, u16(entry + 2) == 3, u32(entry + 4) == 1 else { return .malformed }
             orientation = u16(entry + 8)
         }
-        guard let orientation else { return .absentOrUpright }
-        switch orientation {
-        case 1: return .absentOrUpright
-        case 2...8: return .rotated(orientation, bigEndian)
-        default: return .malformed
-        }
+        // Values outside 2...8 do not rotate the image, so the segment can go.
+        guard let orientation, (2...8).contains(orientation) else { return .absentOrUpright }
+        return .rotated(orientation, bigEndian)
     }
 
     /// A complete APP1 segment: EXIF identifier, TIFF header in the requested
