@@ -210,33 +210,57 @@ final class JPEGColorSpaceTests: XCTestCase, JPEGFixtures {
         }
     }
 
-    // MARK: - Layout variants that still read unambiguously
+    // MARK: - Non-standard layouts
 
-    /// Sub-IFD pointers of type IFD (13), a 3-byte "R03" index without NUL, and
-    /// an Interop IFD missing its (irrelevant) next-IFD offset all carry the
-    /// marker as clearly as the standard layout.
-    func testEquivalentLayoutsKeepTheMarker() throws {
+    /// Variants a lenient reader understands but a strict one may not: IFD-type
+    /// (13) sub-IFD pointers, a 3-byte "R03" index without NUL, an Interop IFD
+    /// without its next-IFD offset. Carrying the marker, the segment is kept
+    /// verbatim so it renders exactly as before whichever way a reader goes;
+    /// without the marker, EXIF is reduced as usual.
+    private func nonStandardVariants(_ builder: EXIFBuilder, index: String) -> [(String, [UInt8])] {
+        let exifPointer = builder.ifds[0].firstIndex { $0.tag == 0x8769 }!
+        var ifdPointers = builder
+        ifdPointers.ifds[0][exifPointer] = EXIFBuilder.Entry(tag: 0x8769, type: 13, count: 1, value: .ifd(1))
+        ifdPointers.ifds[1][3] = EXIFBuilder.Entry(tag: 0xA005, type: 13, count: 1, value: .ifd(2))
+        var shortIndex = builder
+        shortIndex.ifds[2][0] = EXIFBuilder.Entry(tag: 0x0001, type: 2, count: 3, value: .bytes(Array(index.utf8)))
+        // The Interop IFD is last and has no out-of-line data: drop its next-IFD offset.
+        var unterminated = Array(builder.segment().dropLast(4))
+        unterminated[2] = UInt8((unterminated.count - 2) >> 8)
+        unterminated[3] = UInt8((unterminated.count - 2) & 255)
+        return [("IFD pointers", ifdPointers.segment()), ("3-byte index", shortIndex.segment()),
+                ("unterminated Interop IFD", unterminated)]
+    }
+
+    func testNonStandardLayoutsWithMarkerAreKeptVerbatim() throws {
         let base = baseJPEG()
         for bigEndian in [false, true] {
             let builder = EXIFBuilder.camera(bigEndian: bigEndian, colorSpace: 0xFFFF, interopIndex: "R03")
-            var ifdPointers = builder
-            ifdPointers.ifds[0][2] = EXIFBuilder.Entry(tag: 0x8769, type: 13, count: 1, value: .ifd(1))
-            ifdPointers.ifds[1][3] = EXIFBuilder.Entry(tag: 0xA005, type: 13, count: 1, value: .ifd(2))
-            var shortIndex = builder
-            shortIndex.ifds[2][0] = EXIFBuilder.Entry(tag: 0x0001, type: 2, count: 3, value: .bytes(Array("R03".utf8)))
-            // The Interop IFD is last and has no out-of-line data: drop its next-IFD offset.
-            var unterminated = Array(builder.segment().dropLast(4))
-            unterminated[2] = UInt8((unterminated.count - 2) >> 8)
-            unterminated[3] = UInt8((unterminated.count - 2) & 255)
-
-            let minimal = JPEGOptimizer.minimalEXIF(.init(bigEndian: bigEndian, orientation: nil, adobeRGB: .dcf))
-            for (name, exif) in [("IFD pointers", ifdPointers.segment()), ("3-byte index", shortIndex.segment()),
-                                 ("unterminated Interop IFD", unterminated)] {
-                let input = inserting(exif, into: base)
+            for (name, exif) in nonStandardVariants(builder, index: "R03") {
+                XCTAssertNil(JPEGOptimizer.readEXIF(exif, tiffStart: 10, end: exif.count, colorSpace: true), name)
+                let input = inserting(exif + comment("strip me"), into: base)
                 let result = Slimg.optimize(Data(input))
-                XCTAssertEqual([UInt8](result.data), inserting(minimal, into: base), name)
-                XCTAssertEqual(result.report.items.map(\.label), [colorLabel], name)
-                try assertSameColors(input, [UInt8](result.data))
+                XCTAssertEqual([UInt8](result.data), inserting(exif, into: base), name)
+                XCTAssertEqual(result.report.items.map(\.kind), [.comment], name)
+            }
+        }
+    }
+
+    func testNonStandardLayoutsWithoutMarkerAreReduced() throws {
+        let base = baseJPEG()
+        for bigEndian in [false, true] {
+            for orientation: UInt16? in [nil, 6] {
+                let builder = EXIFBuilder.camera(bigEndian: bigEndian, orientation: orientation, colorSpace: 1,
+                                                 interopIndex: "R98")
+                let expected = orientation.map {
+                    inserting(JPEGOptimizer.minimalEXIF(orientation: $0, bigEndian: bigEndian), into: base)
+                } ?? base
+                for (name, exif) in nonStandardVariants(builder, index: "R98") {
+                    let input = inserting(exif, into: base)
+                    let result = Slimg.optimize(Data(input))
+                    XCTAssertEqual([UInt8](result.data), expected, "\(name), orientation \(String(describing: orientation))")
+                    try assertSameColors(input, [UInt8](result.data))
+                }
             }
         }
     }
