@@ -86,14 +86,14 @@ it never compounds loss because there is no loss.
 
 ## Screenshots
 
-> **TODO (assets):** app screenshots and the animated demo live on the
-> [website](https://slimg.app) and under `docs/` once captured. Placeholders are
+> **TODO (assets):** app screenshots live under `docs/` once captured. The
+> website uses stand-in window images until then (see `web/README.md`). Placeholders are
 > noted here so the layout is ready:
 >
 > - `docs/screenshot-drop.png` — drag-and-drop empty state
 > - `docs/screenshot-results.png` — file list with savings and the advanced report
 >
-> Until those are added, see [slimg.app](https://slimg.app) for the live demo.
+> Until those are added, see [slimg.app](https://slimg.app) for a look at the app.
 
 ## Install
 
@@ -329,7 +329,7 @@ Scripts/
   build-app.sh      Assembles Slimg.app from the SwiftPM build product
 Resources/          Info.plist, app icon
 brand/              Brand guidelines, logomark, wordmark, icon master
-site/               Landing page sources (slimg.app)
+web/                The slimg.app website and its Cloudflare Worker
 ```
 
 ## Contributing

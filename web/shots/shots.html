@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  Stand-in screens for the site, drawn from Sources/SlimgApp (same layout,
+  labels, numbers formatting and colors), in dark mode. render.mjs turns each
+  scene into web/site/img/<name>.webp. Replace them with real captures from a
+  Mac when there is one (a new file name for each changed image).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{--win:#1E1E1E;--bar:#2B2B2D;--sep:#3A3A3C;--text:#F2F2F2;--sec:#98989D;--ter:#636366;--teal400:#2DD4BF;--teal500:#14B8A6;--teal600:#0D9488;--cyan:#06B6D4;--ok:#22C55E;--warn:#F59E0B;--ctl:#3A3A3C}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:transparent}
+  body{width:800px;height:560px;font:13px/1.35 Inter,system-ui,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;position:relative;overflow:hidden}
+  .scene{display:none}
+  .scene.on{display:block}
+  .win{position:absolute;left:40px;top:28px;width:720px;height:560px;background:var(--win);border-radius:12px;box-shadow:0 0 0 .5px rgba(255,255,255,.18) inset,0 0 0 1px #000,0 22px 40px rgba(0,0,0,.45);overflow:hidden;display:flex;flex-direction:column}
+  .title{height:30px;flex:none;display:flex;align-items:center;justify-content:center;position:relative;background:var(--bar);font-weight:600;font-size:13px;color:#DCDCDC}
+  .lights{position:absolute;left:12px;top:9px;display:flex;gap:8px}
+  .lights i{width:12px;height:12px;border-radius:50%;display:block}
+  .lights i:nth-child(1){background:#FF5F57}.lights i:nth-child(2){background:#FEBC2E}.lights i:nth-child(3){background:#28C840}
+  .head{flex:none;display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--bar);border-bottom:1px solid var(--sep)}
+  .head .name{font-size:17px;font-weight:700;letter-spacing:-.3px}
+  .head .what{color:var(--sec);font-size:13px}
+  .grow{flex:1}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px}
+  .sw{width:32px;height:18px;border-radius:9px;background:var(--teal500);position:relative}
+  .sw::after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .sw.off{background:#545458}.sw.off::after{right:auto;left:2px}
+  .add{display:flex;align-items:center;gap:6px;color:#fff;font-weight:600;padding:5px 13px;border-radius:8px;background:linear-gradient(135deg,var(--teal400),var(--cyan));box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18)}
+  .add svg{width:12px;height:12px}
+  .body{flex:1;position:relative;overflow:hidden}
+  .list{padding:8px 10px}
+  .row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-bottom:1px solid #2C2C2E}
+  .row:last-child{border-bottom:0}
+  .row .ic{width:18px;height:18px;flex:none}
+  .row .file{flex:1;min-width:0}
+  .row .fn{font-size:13px}
+  .row .dt{font-size:11px;color:var(--sec);margin-top:2px}
+  .row .pct{font-weight:600;color:var(--ok);font-variant-numeric:tabular-nums}
+  .row .pct.zero{color:var(--sec)}
+  .row .rep{width:17px;height:17px;color:var(--teal600);flex:none}
+  .row .rep.hide{visibility:hidden}
+  .foot{flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bar);border-top:1px solid var(--sep);font-size:12.5px}
+  .foot .sec{color:var(--sec)} .foot b{font-weight:600;font-variant-numeric:tabular-nums} .foot .g{color:var(--ok)} .foot .t{color:var(--ter)}
+  .foot .clear{color:var(--teal600);font-weight:500}
+  /* Drop zone */
+  .drop{position:absolute;inset:20px;border-radius:18px;border:2px dashed transparent;background:linear-gradient(var(--win),var(--win)) padding-box,linear-gradient(135deg,var(--teal400),var(--cyan)) border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+  .drop::before{content:"";position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,rgba(45,212,191,.06),rgba(6,182,212,.06))}
+  .drop .wm{position:absolute;width:220px;height:220px;opacity:.10}
+  .drop h3{margin:0;font-size:22px;font-weight:600;position:relative}
+  .drop p{margin:0;color:var(--sec);font-size:13px;position:relative}
+  .drop .mk{position:relative;width:58px;height:58px}
+  .ghost{position:absolute;left:540px;top:300px;width:96px;text-align:center;transform:rotate(-4deg);opacity:.95}
+  .ghost .folder{width:96px;height:78px}
+  .ghost .label{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:6px;background:#0A64D8;color:#fff;font-size:12px;font-weight:500}
+  .ghost .badge{position:absolute;right:-8px;top:-8px;min-width:24px;height:24px;border-radius:12px;background:#FF3B30;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .ghost .plus{position:absolute;left:-10px;bottom:22px;width:24px;height:24px;border-radius:50%;background:#28C840;color:#fff;font-weight:700;font-size:17px;line-height:24px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  /* Report popover */
+  .pop{position:absolute;left:400px;top:158px;width:360px;background:#2A2A2C;border-radius:12px;box-shadow:0 0 0 .5px rgba(255,255,255,.2) inset,0 0 0 1px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.55)}
+  .pop::before{content:"";position:absolute;right:28px;top:-9px;width:18px;height:18px;background:#2A2A2C;transform:rotate(45deg);border-left:.5px solid rgba(255,255,255,.2);border-top:.5px solid rgba(255,255,255,.2)}
+  .pop .ph{padding:14px 14px 12px;position:relative}
+  .pop .ht{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+  .pop .ht svg{width:17px;height:17px}
+  .pop .pf{color:var(--sec);font-size:11.5px;margin-top:6px}
+  .pop .pl{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11.5px;font-variant-numeric:tabular-nums}
+  .pill{font-size:10px;font-weight:600;letter-spacing:.3px;padding:2px 7px;border-radius:99px;color:var(--teal400);background:rgba(20,184,166,.18)}
+  .pop .pl .s{color:var(--sec)} .pop .pl .g{color:var(--ok);font-weight:600}
+  .pop .items{border-top:1px solid var(--sep);border-bottom:1px solid var(--sep);padding:12px 14px;display:grid;gap:11px}
+  .it{display:flex;align-items:center;gap:10px}
+  .it svg{width:18px;height:18px;color:var(--warn);flex:none}
+  .it .l{flex:1;font-size:13px}
+  .it .k{font-size:10.5px;color:var(--sec);margin-top:1px}
+  .it .b{color:var(--sec);font-variant-numeric:tabular-nums;font-size:13px}
+  .pop .pfoot{display:flex;align-items:center;gap:6px;padding:9px 14px 11px;font-size:11px;color:var(--sec)}
+  .pop .pfoot svg{width:13px;height:13px;color:var(--teal500)}
+  /* Settings */
+  .set{left:110px;width:580px}
+  .set .title{background:#2B2B2D;border-bottom:1px solid #1A1A1A}
+  .set .form{padding:18px 20px;background:#1E1E1E;flex:1}
+  .grp{margin-bottom:18px}
+  .grp h4{margin:0 0 7px 10px;font-size:13px;font-weight:700;color:#E5E5E7}
+  .box{background:#2A2A2C;border-radius:9px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+  .tg{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #38383A;font-size:13px}
+  .tg:last-child{border-bottom:0}
+  .tg span{flex:1}
+  .tg .sw{flex:none}
+  .cap{padding:8px 12px 10px;font-size:11px;color:var(--sec)}
+  /* Terminal */
+  .term{background:#161618}
+  .term .title{background:#2B2B2D;color:#C8C8CA;font-weight:500}
+  .term pre{margin:0;padding:16px 18px;font:13.5px/1.6 "JetBrains Mono",monospace;color:#E6E6E6;white-space:pre;font-variant-ligatures:none}
+  .p{color:var(--teal400)} .c{color:#fff;font-weight:600} .d{color:#8E8E93} .o{color:var(--ok)} .w{color:var(--warn)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2DD4BF"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+    <symbol id="mark" viewBox="0 0 100 100"><g fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><polyline points="26,28 40,50 26,72"/><polyline points="74,28 60,50 74,72"/></g><rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="url(#g)"/></symbol>
+    <symbol id="markmono" viewBox="0 0 100 100"><g fill="none" stroke="#14B8A6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><polyline points="26,28 40,50 26,72"/><polyline points="74,28 60,50 74,72"/></g><rect x="45.5" y="26" width="9" height="48" rx="4.5" fill="#14B8A6"/></symbol>
+    <symbol id="ok" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#22C55E"/><path d="M6 10.3l2.6 2.6L14.2 7.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="skip" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#8E8E93"/><path d="M6 10h8" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="rep" viewBox="0 0 20 20"><rect x="2" y="3.5" width="16" height="13" rx="2.5" fill="none" stroke="#0D9488" stroke-width="1.6"/><path d="M6 8h.01M6 11h.01M6 14h.01M9 8h6M9 11h6M9 14h4" stroke="#0D9488" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="plus" viewBox="0 0 12 12"><path d="M6 1v10M1 6h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="cam" viewBox="0 0 20 20"><path d="M3 6.5h3l1.5-2h5L14 6.5h3v9H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="doc" viewBox="0 0 20 20"><path d="M5 2.5h7l3 3v12H5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7.5 9h5M7.5 12h5M7.5 15h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="tag" viewBox="0 0 20 20"><path d="M3 3h7l7 7-7 7-7-7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="seal" viewBox="0 0 20 20"><path d="M10 1.5l2.2 1.6 2.7-.1.8 2.6 2.2 1.6-.9 2.6.9 2.6-2.2 1.6-.8 2.6-2.7-.1L10 18.5l-2.2-1.6-2.7.1-.8-2.6-2.2-1.6.9-2.6-.9-2.6 2.2-1.6.8-2.6 2.7.1z" fill="currentColor"/><path d="M6.8 10.2l2.2 2.2 4.2-4.4" fill="none" stroke="#2A2A2C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="folder" viewBox="0 0 96 78"><path d="M4 12a6 6 0 016-6h24l8 8h44a6 6 0 016 6v48a6 6 0 01-6 6H10a6 6 0 01-6-6z" fill="#1B8CF0"/><path d="M4 24a6 6 0 016-6h76a6 6 0 016 6v44a6 6 0 01-6 6H10a6 6 0 01-6-6z" fill="#4AA8FA"/></symbol>
+  </defs>
+</svg>
+
+<template id="header">
+  <div class="title"><span class="lights"><i></i><i></i><i></i></span>Slimg</div>
+  <div class="head">
+    <svg width="22" height="22"><use href="#mark"/></svg>
+    <span class="name">Slimg</span><span class="what">lossless image slimming</span>
+    <span class="grow"></span>
+    <span class="switch">Keep originals <span class="sw"></span></span>
+    <span class="add"><svg><use href="#plus"/></svg>Add Images</span>
+  </div>
+</template>
+
+<!-- main: the window after a drop -->
+<div class="scene" id="main">
+  <div class="win">
+    <div class="hdr"></div>
+    <div class="body"><div class="list" id="rows"></div></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<!-- report: the same window with the report open on the photo -->
+<div class="scene" id="report">
+  <div class="win">
+    <div class="hdr"></div>
+    <div class="body"><div class="list rows2"></div></div>
+    <div class="foot foot2"></div>
+  </div>
+  <div class="pop">
+    <div class="ph">
+      <div class="ht"><svg><use href="#mark"/></svg>Advanced report</div>
+      <div class="pf">IMG_2048.jpg</div>
+      <div class="pl"><span class="pill">JPEG</span><span class="s">2.4 MB → 2.1 MB</span><span class="g">saved 303.5 KB (12.4%)</span></div>
+    </div>
+    <div class="items">
+      <div class="it"><svg><use href="#cam"/></svg><div class="l">EXIF metadata (APP1)<div class="k">removed</div></div><span class="b">288.0 KB</span></div>
+      <div class="it"><svg><use href="#doc"/></svg><div class="l">XMP metadata (APP1)<div class="k">removed</div></div><span class="b">12.4 KB</span></div>
+      <div class="it"><svg><use href="#tag"/></svg><div class="l">IPTC / Photoshop metadata (APP13)<div class="k">removed</div></div><span class="b">3.1 KB</span></div>
+    </div>
+    <div class="pfoot"><svg><use href="#seal"/></svg>Pixels were not modified. This is a lossless change.</div>
+  </div>
+</div>
+
+<!-- drop: the empty window with a folder being dragged in -->
+<div class="scene" id="drop">
+  <div class="win">
+    <div class="hdr"></div>
+    <div class="body">
+      <div class="drop">
+        <svg class="wm"><use href="#markmono"/></svg>
+        <svg class="mk"><use href="#mark"/></svg>
+        <h3>Drop to slim them</h3>
+        <p>JPEG · PNG · GIF · HEIC — pixels untouched, metadata removed</p>
+      </div>
+      <div class="ghost"><svg class="folder"><use href="#folder"/></svg><span class="label">Trip photos</span><span class="badge">48</span><span class="plus">+</span></div>
+    </div>
+    <div class="foot"><span class="sec">Drag images here to strip metadata and extra weight</span></div>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="scene" id="settings">
+  <div class="win set">
+    <div class="title"><span class="lights"><i></i><i></i><i></i></span>Slimg Settings</div>
+    <div class="form">
+      <div class="grp"><h4>What to remove</h4><div class="box">
+        <div class="tg"><span>Strip metadata (EXIF, XMP, IPTC, comments)</span><i class="sw"></i></div>
+        <div class="tg"><span>Strip color profiles (ICC)</span><i class="sw off"></i></div>
+        <div class="tg"><span>Re-compress losslessly (PNG)</span><i class="sw"></i></div>
+      </div></div>
+      <div class="grp"><h4>Additional lossless optimization</h4><div class="box">
+        <div class="tg"><span>Deep PNG compression</span><i class="sw off"></i></div>
+        <div class="tg"><span>Maximum PNG compression (Zopfli)</span><i class="sw off"></i></div>
+        <div class="tg"><span>Reduce PNG color storage exactly</span><i class="sw off"></i></div>
+        <div class="tg"><span>Optimize PNG chunks and profiles</span><i class="sw off"></i></div>
+        <div class="tg"><span>Optimize JPEG Huffman coding</span><i class="sw off"></i></div>
+        <div class="tg"><span>Try progressive JPEG encoding</span><i class="sw off"></i></div>
+        <div class="tg"><span>Recompress GIF image data</span><i class="sw off"></i></div>
+        <div class="cap">All additional methods are off by default. Slower methods can save more on suitable images; only smaller results are kept.</div>
+      </div></div>
+      <div class="grp"><h4>Output</h4><div class="box">
+        <div class="tg"><span>Keep originals (back up as .bak)</span><i class="sw"></i></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- terminal -->
+<div class="scene" id="terminal">
+  <div class="win term">
+    <div class="title"><span class="lights"><i></i><i></i><i></i></span>Photos — zsh — 80×24</div>
+<pre><span class="p">~/Photos %</span> <span class="c">slimg --backup --report photo.jpg</span>
+  <span class="o">ok</span>    photo.jpg [JPEG] 2.4 MB -> 2.1 MB  <span class="o">−12.4%</span> <span class="d">(orig -> photo.bak.jpg)</span>
+        <span class="w">removed</span>  EXIF metadata (APP1)  <span class="d">(288.0 KB)</span>
+        <span class="w">removed</span>  XMP metadata (APP1)  <span class="d">(12.4 KB)</span>
+        <span class="w">removed</span>  IPTC / Photoshop metadata (APP13)  <span class="d">(3.1 KB)</span>
+<span class="p">~/Photos %</span> <span class="c">slimg --dry-run --deep-png --zopfli-png screenshot.png</span>
+  <span class="o">would</span> screenshot.png [PNG] 820.0 KB -> 655.4 KB  <span class="o">−20.1%</span>
+<span class="p">~/Photos %</span> <span class="c">slimg --backup --recompress-gif loading.gif</span>
+  <span class="o">ok</span>    loading.gif [GIF] 412.0 KB -> 398.3 KB  <span class="o">−3.3%</span> <span class="d">(orig -> loading.bak.gif)</span>
+<span class="p">~/Photos %</span> <span class="c">▍</span></pre>
+  </div>
+</div>
+
+<script>
+  // The app's ByteFormat: 1024-based, one decimal.
+  function fmt(n){const u=["B","KB","MB","GB"];let v=n,i=0;while(v>=1024&&i<u.length-1){v/=1024;i++}return i===0?n+" B":v.toFixed(1)+" "+u[i]}
+  const files=[
+    ["IMG_2048.jpg",2512384,2201600],
+    ["IMG_2051.HEIC",3250000,3141000],
+    ["onboarding-hero.png",1887000,1571000],
+    ["settings-dark.png",655600,566200],
+    ["loading.gif",421900,408100],
+    ["logo.png",4198,null],
+  ];
+  function rowsHTML(){
+    return files.map(([n,a,b])=>{
+      if(b===null) return `<div class="row"><svg class="ic"><use href="#skip"/></svg><div class="file"><div class="fn">${n}</div><div class="dt">Already optimal</div></div><svg class="rep hide"><use href="#rep"/></svg></div>`;
+      const p=((a-b)/a*100).toFixed(1);
+      return `<div class="row"><svg class="ic"><use href="#ok"/></svg><div class="file"><div class="fn">${n}</div><div class="dt">${fmt(a)} → ${fmt(b)}</div></div><span class="pct">−${p}%</span><svg class="rep"><use href="#rep"/></svg></div>`;
+    }).join("");
+  }
+  const done=files.filter(f=>f[2]!==null);
+  const A=done.reduce((s,f)=>s+f[1],0),B=done.reduce((s,f)=>s+f[2],0);
+  const foot=`<span class="sec">Saved</span><b>${fmt(A-B)}</b><b class="g">(${((A-B)/A*100).toFixed(1)}%)</b><span class="t">·</span><span class="sec">${fmt(A)} → ${fmt(B)}</span><span class="grow"></span><span class="clear">Clear</span>`;
+  document.querySelectorAll(".hdr").forEach(h=>h.replaceWith(document.getElementById("header").content.cloneNode(true)));
+  document.getElementById("rows").innerHTML=rowsHTML();
+  document.querySelector(".rows2").innerHTML=rowsHTML();
+  document.getElementById("foot").innerHTML=foot;
+  document.querySelector(".foot2").innerHTML=foot;
+  const scene=new URLSearchParams(location.search).get("scene")||"main";
+  document.getElementById(scene).classList.add("on");
+  window.SUMMARY={saved:fmt(A-B),pct:((A-B)/A*100).toFixed(1),from:fmt(A),to:fmt(B)};
+</script>
+</body>
+</html>

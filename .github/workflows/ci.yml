@@ -59,6 +59,18 @@ jobs:
         continue-on-error: true
         run: swift Scripts/generate-icons.swift
 
+  site:
+    name: Website is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # web/site/ is generated from web/pages/ by web/build.py. Fail when
+      # someone edits one without rebuilding the other.
+      - name: Check web/site/ against web/pages/
+        run: python3 web/build.py --check
+
   lint:
     name: Format lint (non-blocking)
     runs-on: macos-14
