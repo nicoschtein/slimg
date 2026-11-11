@@ -277,7 +277,8 @@ unchanged.
   are kept and none is embedded, that marker stays in the minimal segment so
   colors render as before. `--strip-color` drops it with the rest of EXIF. If
   the EXIF structures involved are malformed or truncated, the segment is kept
-  untouched rather than guessed at.
+  untouched rather than guessed at; a pointer leading past the end of the EXIF
+  data counts as absent, since no reader can follow it.
   The entropy-coded scan data (everything from `SOS` onward) is copied
   byte-for-byte by default. Optional Huffman/progressive optimization reads and
   writes the existing quantized coefficients through libjpeg-turbo without

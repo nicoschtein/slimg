@@ -43,7 +43,8 @@ enum JPEGOptimizer {
 
         var items = [RemovedItem]()
         // An embedded profile takes precedence over the EXIF color space marker.
-        let keepEXIFColorSpace = options.keepColorProfile && !hasICCProfile(data)
+        // Only needed once an EXIF segment turns up.
+        lazy var keepEXIFColorSpace = options.keepColorProfile && !hasICCProfile(data)
 
         var i = 2
         while i < n {
@@ -88,7 +89,7 @@ enum JPEGOptimizer {
             guard segEnd <= n else { return nil }
 
             switch classify(marker: marker, data: data, payloadStart: payloadStart, payloadEnd: segEnd,
-                            options: options, keepEXIFColorSpace: keepEXIFColorSpace) {
+                            options: options, keepEXIFColorSpace: marker == 0xE1 && keepEXIFColorSpace) {
             case .keep:
                 out.append(contentsOf: data[markerStart..<segEnd])
             case let .remove(kind, label):
@@ -235,12 +236,12 @@ enum JPEGOptimizer {
             return bigEndian ? (first << 16 | second) : (second << 16 | first)
         }
 
-        /// The entries of the IFD at `offset`, which must be complete, including
-        /// the 4-byte next-IFD offset that follows them.
-        func ifd(at offset: Int) throws -> [TIFFEntry] {
+        /// The entries of the IFD at `offset`, which must all be present, and,
+        /// with `requireNext`, the 4-byte next-IFD offset that follows them.
+        func ifd(at offset: Int, requireNext: Bool = true) throws -> [TIFFEntry] {
             guard offset >= 8, offset <= length - 2 else { throw MalformedTIFF() }
             let count = Int(try u16(offset))
-            guard offset + 2 + count * 12 + 4 <= length else { throw MalformedTIFF() }
+            guard offset + 2 + count * 12 + (requireNext ? 4 : 0) <= length else { throw MalformedTIFF() }
             return try (0..<count).map { index in
                 let entry = offset + 2 + index * 12
                 return TIFFEntry(tag: try u16(entry), type: try u16(entry + 2), count: try u32(entry + 4),
@@ -248,10 +249,15 @@ enum JPEGOptimizer {
             }
         }
 
-        /// The offset stored in a sub-IFD pointer entry (LONG or IFD, count 1).
-        func pointer(_ entry: TIFFEntry) throws -> Int {
+        /// The entries of the sub-IFD a pointer entry (LONG or IFD, count 1)
+        /// leads to, or nil when it points beyond the TIFF data: no reader can
+        /// follow it there, so whatever it would hold has no effect. Its
+        /// next-IFD offset is irrelevant and not required.
+        func subIFD(_ entry: TIFFEntry) throws -> [TIFFEntry]? {
             guard entry.type == 4 || entry.type == 13, entry.count == 1 else { throw MalformedTIFF() }
-            return Int(try u32(entry.valueOffset))
+            let offset = Int(try u32(entry.valueOffset))
+            guard offset < length - 1 else { return nil }
+            return try ifd(at: offset, requireNext: false)
         }
     }
 
@@ -292,15 +298,15 @@ enum JPEGOptimizer {
             if (2...8).contains(value) { essentials.orientation = value }
         }
 
-        guard colorSpace, let exifPointer = try unique(exifIFDTag, in: ifd0) else { return essentials }
-        let exifIFD = try tiff.ifd(at: try tiff.pointer(exifPointer))
+        guard colorSpace, let exifPointer = try unique(exifIFDTag, in: ifd0),
+              let exifIFD = try tiff.subIFD(exifPointer) else { return essentials }
         var space: UInt16?
         if let entry = try unique(colorSpaceTag, in: exifIFD) {
             guard entry.type == 3, entry.count == 1 else { throw MalformedTIFF() }
             space = try tiff.u16(entry.valueOffset)
         }
-        guard let interopPointer = try unique(interopIFDTag, in: exifIFD) else { return essentials }
-        let interop = try tiff.ifd(at: try tiff.pointer(interopPointer))
+        guard let interopPointer = try unique(interopIFDTag, in: exifIFD),
+              let interop = try tiff.subIFD(interopPointer) else { return essentials }
         guard let index = try unique(interopIndexTag, in: interop) else { return essentials }
         // An ASCII index such as "R03\0" fits inline in the value field.
         guard index.type == 2, (3...4).contains(index.count) else { throw MalformedTIFF() }
@@ -364,7 +370,12 @@ enum JPEGOptimizer {
         minimalEXIF(EXIFEssentials(bigEndian: bigEndian, orientation: orientation, adobeRGB: nil))
     }
 
-    /// Whether an APP2 ICC profile appears among the header segments.
+    /// Size of an ICC profile header; a chunk shorter than this is unusable.
+    private static let iccHeaderSize = 128
+
+    /// Whether an APP2 ICC profile with at least a full profile header appears
+    /// among the header segments. An empty or truncated chunk is ignored by
+    /// decoders, which then fall back to the EXIF color space marker.
     private static func hasICCProfile(_ d: [UInt8]) -> Bool {
         var i = 2
         while i < d.count, d[i] == 0xFF {
@@ -376,7 +387,9 @@ enum JPEGOptimizer {
             if marker == 0x01 || (0xD0...0xD8).contains(marker) { i = j + 1; continue }
             let length = Int(d[j + 1]) << 8 | Int(d[j + 2])
             guard length >= 2, j + 1 + length <= d.count else { return false }
-            if marker == 0xE2, isICCProfile(d, from: j + 3, to: j + 1 + length) { return true }
+            // Payload: "ICC_PROFILE\0", sequence number, chunk count, profile data.
+            if marker == 0xE2, isICCProfile(d, from: j + 3, to: j + 1 + length),
+               length - 2 - (iccSignature.count + 3) >= iccHeaderSize { return true }
             i = j + 1 + length
         }
         return false

@@ -47,33 +47,14 @@ final class JPEGOrientationTests: XCTestCase, JPEGFixtures {
         [UInt8](Slimg.optimize(encodeJPEG()).data)
     }
 
-    private func bytes(_ value: UInt16, _ bigEndian: Bool) -> [UInt8] {
-        bigEndian ? [UInt8(value >> 8), UInt8(value & 255)] : [UInt8(value & 255), UInt8(value >> 8)]
-    }
-
-    private func bytes(_ value: UInt32, _ bigEndian: Bool) -> [UInt8] {
-        let high = bytes(UInt16(value >> 16), bigEndian), low = bytes(UInt16(value & 0xFFFF), bigEndian)
-        return bigEndian ? high + low : low + high
-    }
-
     /// A complete EXIF APP1 segment whose IFD0 holds an ImageDescription (stored
     /// out of line, to give the segment some bulk) and optionally Orientation.
-    private func exifSegment(orientation: UInt16?, bigEndian: Bool, description: Int = 200) -> [UInt8] {
-        let entryCount: UInt16 = orientation == nil ? 1 : 2
-        let dataOffset = UInt32(8 + 2 + Int(entryCount) * 12 + 4)
-        var tiff: [UInt8] = bigEndian ? [0x4D, 0x4D] : [0x49, 0x49]
-        tiff += bytes(UInt16(42), bigEndian) + bytes(UInt32(8), bigEndian)
-        tiff += bytes(entryCount, bigEndian)
-        // ImageDescription, ASCII.
-        tiff += bytes(UInt16(0x010E), bigEndian) + bytes(UInt16(2), bigEndian)
-        tiff += bytes(UInt32(description + 1), bigEndian) + bytes(dataOffset, bigEndian)
-        if let orientation {
-            tiff += bytes(UInt16(0x0112), bigEndian) + bytes(UInt16(3), bigEndian) + bytes(UInt32(1), bigEndian)
-            tiff += bytes(orientation, bigEndian) + [0, 0]
-        }
-        tiff += bytes(UInt32(0), bigEndian) // no next IFD
-        tiff += [UInt8](repeating: 0x41, count: description) + [0]
-        return app1(Array("Exif\0\0".utf8) + tiff)
+    private func exifSegment(orientation: UInt16?, bigEndian: Bool) -> [UInt8] {
+        var builder = EXIFBuilder(bigEndian: bigEndian, ifds: [])
+        var ifd0 = [builder.ascii(0x010E, String(repeating: "A", count: 200))]
+        if let orientation { ifd0.append(builder.short(0x0112, orientation)) }
+        builder.ifds = [ifd0]
+        return builder.segment()
     }
 
     /// Byte order marker ("II"/"MM") of the first EXIF APP1 in a JPEG.
@@ -219,8 +200,9 @@ final class JPEGOrientationTests: XCTestCase, JPEGFixtures {
         let clean = cleanJPEG()
         let note = comment("strip me")
 
-        func le16(_ v: UInt16) -> [UInt8] { bytes(v, false) }
-        func le32(_ v: UInt32) -> [UInt8] { bytes(v, false) }
+        let littleEndian = EXIFBuilder(bigEndian: false, ifds: [])
+        func le16(_ v: UInt16) -> [UInt8] { littleEndian.u16(v) }
+        func le32(_ v: UInt32) -> [UInt8] { littleEndian.u32(v) }
         /// An APP1 segment whose payload is "Exif\0\0" followed by `parts`.
         func exif(_ parts: [UInt8]...) -> [UInt8] { app1(Array("Exif\0\0".utf8) + parts.joined()) }
         let little: [UInt8] = [0x49, 0x49]
