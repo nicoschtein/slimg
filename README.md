@@ -86,14 +86,14 @@ it never compounds loss because there is no loss.
 
 ## Screenshots
 
-> **TODO (assets):** app screenshots and the animated demo live on the
-> [website](https://slimg.app) and under `docs/` once captured. Placeholders are
+> **TODO (assets):** app screenshots live under `docs/` once captured. The
+> website uses stand-in window images until then (see `web/README.md`). Placeholders are
 > noted here so the layout is ready:
 >
 > - `docs/screenshot-drop.png` — drag-and-drop empty state
 > - `docs/screenshot-results.png` — file list with savings and the advanced report
 >
-> Until those are added, see [slimg.app](https://slimg.app) for the live demo.
+> Until those are added, see [slimg.app](https://slimg.app) for a look at the app.
 
 ## Install
 
@@ -108,8 +108,10 @@ GUI) and the **`slimg`** command-line tool. Requires **macOS 13 or newer**.
 
 > **First launch (open source, ad-hoc signed builds):** Slimg is open source.
 > If a build is not yet Developer-ID notarized, macOS Gatekeeper may refuse to
-> open it on the first try. **Right-click (or Control-click) the app → Open →
-> Open** to launch it the first time. You only need to do this once. Notarized,
+> open it on the first try. Click **Done**, then open **System Settings →
+> Privacy & Security**, scroll to **Security** and click **Open Anyway** next to
+> the Slimg message, confirming with your password. (On macOS 15 and later the
+> old right-click → Open shortcut no longer works.) You only need to do this once. Notarized,
 > Developer-ID-signed builds are on the [roadmap](ROADMAP.md).
 
 ### 2. Download the CLI
@@ -341,7 +343,7 @@ Scripts/
   build-app.sh      Assembles Slimg.app from the SwiftPM build product
 Resources/          Info.plist, app icon
 brand/              Brand guidelines, logomark, wordmark, icon master
-site/               Landing page sources (slimg.app)
+web/                The slimg.app website and its Cloudflare Worker
 ```
 
 ## Contributing

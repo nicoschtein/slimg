@@ -6,6 +6,9 @@ Package.resolved
 # Generated app bundle (produced by Scripts/build-app.sh)
 Slimg.app/
 
+# Website: local wrangler state
+web/worker/.wrangler/
+
 # macOS
 .DS_Store
 

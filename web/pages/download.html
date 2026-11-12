@@ -1,0 +1,47 @@
+<main id="main" class="support-page">
+  <div class="wrap">
+    <header class="page-head">
+      <span class="eyebrow">Download</span>
+      <h1>Get Slimg for Mac.</h1>
+      <p class="tip">Version {{VERSION}}. Free. macOS 13 or later, on Apple silicon and Intel.</p>
+    </header>
+
+    <section class="flush" aria-labelledby="app-h">
+      <h2 class="sub" id="app-h">The app</h2>
+      <div class="dl">
+        <a class="btn big" href="/download/Slimg.dmg">Download Slimg.dmg</a>
+        <a class="sum" href="/download/Slimg.dmg.sha256">SHA-256 checksum</a>
+      </div>
+      <ol class="steps">
+        <li><h3>Open the download</h3><p>Double-click Slimg.dmg in your Downloads folder.</p></li>
+        <li><h3>Drag Slimg to Applications</h3><p>Drop the Slimg icon on the Applications folder in the window that opens.</p></li>
+        <li><h3>Open it the first time</h3><p>Double-click Slimg in Applications. When macOS says it can't verify Slimg, click <b>Done</b>.</p></li>
+        <li><h3>Allow it in System Settings</h3><p>Open <b>System Settings &gt; Privacy &amp; Security</b>, scroll down to Security and click <b>Open Anyway</b> next to the note about Slimg. Enter your password, then click <b>Open Anyway</b> once more. You only do this once.</p></li>
+      </ol>
+      <div class="tip-box">
+        <svg class="tip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <p>Slimg isn't notarized by Apple yet, so macOS stops it the first time it opens. Open Anyway tells your Mac you trust it.</p>
+      </div>
+    </section>
+
+    <section class="flush" aria-labelledby="cli-h">
+      <h2 class="sub" id="cli-h">The command-line tool</h2>
+      <div class="dl">
+        <a class="btn mid" href="/download/slimg-cli-macos.tar.gz">Download slimg-cli-macos.tar.gz</a>
+        <a class="sum" href="/download/slimg-cli-macos.tar.gz.sha256">SHA-256 checksum</a>
+      </div>
+      <p class="tip">Unpack it and move slimg onto your path:</p>
+      <pre class="code"><code>tar -xzf slimg-cli-macos.tar.gz
+sudo mv slimg /usr/local/bin/
+slimg --help</code></pre>
+      <p class="tip">If macOS stops the tool from running, clear the download flag once:</p>
+      <pre class="code"><code>xattr -d com.apple.quarantine /usr/local/bin/slimg</code></pre>
+      <p class="tip">Every option is on the <a href="/support#command-line">support page</a>.</p>
+    </section>
+
+    <section class="flush" aria-labelledby="src-h">
+      <h2 class="sub" id="src-h">Build it yourself</h2>
+      <p class="tip">Slimg is open source under the MIT License. With Xcode 15 or later, clone <a href="/source">the source code</a> and run <code>./Scripts/build-app.sh</code>.</p>
+    </section>
+  </div>
+</main>
