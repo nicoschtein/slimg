@@ -116,8 +116,10 @@ Cloudflare, one Worker with static assets (`worker/wrangler.toml`):
 - `slimg.app` as the Worker's custom domain. www redirects to the apex (a
   Redirect Rule in the zone). Always Use HTTPS on.
 - `POST /contact` sends the support form through Cloudflare Email Routing,
-  from `form@ladrillostudio.com` to the `CONTACT_TO` secret, with Reply-To
-  set to the customer. 5 messages a minute per address; honeypot spam is
+  from `form@slimg.app` to the `CONTACT_TO` secret, with Reply-To set to
+  the customer. Email Routing is on in the slimg.app zone (its MX and SPF
+  records), and `CONTACT_TO` must be a verified Email Routing destination
+  address in the same Cloudflare account. 5 messages a minute per address; honeypot spam is
   dropped without a word. The email is 7-bit MIME with CRLF line ends: the
   subject is RFC 2047 encoded when it isn't plain ASCII, the body is base64,
   so any language and any message length up to the form's limit goes
@@ -131,8 +133,9 @@ Cloudflare, one Worker with static assets (`worker/wrangler.toml`):
    another studio site's rate limiter.
 2. Point slimg.app's DNS at Cloudflare. The old site was on GitHub Pages; its
    workflow is gone, so the old pages stay up until DNS moves.
-3. Make sure `form@ladrillostudio.com` can send to the studio inbox through
-   Email Routing.
+3. Make sure Email Routing is enabled in the slimg.app zone, so
+   `form@slimg.app` can send, and that the `CONTACT_TO` inbox is a verified
+   destination address.
 
 ### Deploying (only on ladrillo's go)
 
