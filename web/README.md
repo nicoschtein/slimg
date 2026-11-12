@@ -166,10 +166,28 @@ rm -rf /private/tmp/slimg-cf
   GitHub Pages site. Checked locally with `wrangler dev`: every page returns
   200, the headers are set, `/support/sent` is `noindex`, a cross-origin post
   gets 403, honeypot posts are dropped, the sixth message in a minute gets
-  429, and the redirects resolve. **Not deployed yet.**
+  429, and the redirects resolve.
 - **November 11, 2026.** Review fixes: email encoding (CRLF, base64 body,
   encoded subject), the body cap sized for non-ASCII messages, browser-matched
   email check, `/support/not-sent`, the honeypot rename, the macOS 15
   Gatekeeper steps, `{{VERSION}}` in pages, and stale-page detection. Checked
   with `wrangler dev`: multi-line, emoji, 1,500-character Japanese and
   5,000-character messages all arrive and decode exactly.
+- **November 11, 2026.** Deployed to slimg.app as the `slimg-site` Worker.
+  The zone's old CNAME to GitHub Pages had to be deleted in the dashboard
+  first: `wrangler deploy` can't replace an existing DNS record (error
+  100117) and doesn't offer to. The contact form sends from `form@slimg.app`
+  to the `CONTACT_TO` secret. Checked live: every page and `robots.txt`,
+  `sitemap.xml` and `llms.txt` return 200; the CSP header is on `/`;
+  `/img/*` is cached for a year; `/support/sent` and `/support/not-sent`
+  are `noindex`; `/download/Slimg.dmg`, `/source` and `/license` redirect
+  (302) to GitHub; www redirects (301) to the apex; a cross-origin post to
+  `/contact` gets 403; and one real test message sent through the support
+  form reached the inbox.
+- **November 11, 2026.** Redeployed for Slimg 1.1.1, after the release was
+  published. Checked live: every page returns 200, the home and download
+  pages show version 1.1.1, the release notes lead with 1.1.1, the CSP header
+  is on `/`, a cross-origin post to `/contact` gets 403, and
+  `/download/Slimg.dmg` serves the 1.1.1 DMG with a matching SHA-256. The
+  `cf` CLI (`cf dns records ...`) can change the zone's DNS records, which
+  `wrangler` can't.
