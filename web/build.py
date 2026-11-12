@@ -25,7 +25,7 @@ ORIGIN = f"https://{DOMAIN}"
 APP = "Slimg"
 # The current release. Pages write {{VERSION}} wherever they show it, so a
 # release changes this line and nothing else (plus a release-notes entry).
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 # The footer's copyright year. Change it on the first build of a new year.
 YEAR = "2026"
 
