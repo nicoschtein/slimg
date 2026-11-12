@@ -2,6 +2,16 @@
   <h1>Release notes</h1>
   <p class="lede">What's new in Slimg, newest version first.</p>
 
+  <section class="release" aria-labelledby="v111">
+    <h2 id="v111">Slimg 1.1.1</h2>
+    <p class="when">November 11, 2026</p>
+    <ul>
+      <li><b>Photos stay the right way up.</b> Some camera and phone photos record their rotation only in the EXIF data that Slimg removes, so they could come out rotated or mirrored. Slimg now keeps that one setting and removes the rest.</li>
+      <li><b>Adobe RGB colors stay true.</b> Photos from cameras set to Adobe RGB that carry no color profile keep their color space marker, so their colors no longer shift toward sRGB. It's still removed when you choose to strip color data.</li>
+      <li><b>Careful with damaged EXIF data.</b> When a photo's EXIF data is damaged or laid out in an unusual way, Slimg leaves it as it is instead of guessing.</li>
+    </ul>
+  </section>
+
   <section class="release" aria-labelledby="v110">
     <h2 id="v110">Slimg 1.1.0</h2>
     <p class="when">October 26, 2026</p>
