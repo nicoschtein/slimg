@@ -38,13 +38,9 @@ Slimg is distributed from this repository. Security fixes are applied to the **l
 
 **Please report security issues privately — do not open a public issue or PR for a suspected vulnerability.**
 
-Preferred channel:
+Use this channel:
 
 - **GitHub Security Advisories** — use the repository's **"Report a vulnerability"** button under the **Security** tab (Private Vulnerability Reporting). This keeps the report confidential until a fix is available.
-
-Alternative channel:
-
-- **Email:** `` with subject line `Slimg security`. If you wish to encrypt, mention so and we will arrange a key.
 
 Please include, as much as you can:
 
