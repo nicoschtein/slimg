@@ -1,0 +1,20 @@
+# Slimg
+
+> Slimg is a lossless image optimizer for Mac, made by Ladrillo Studio. It makes JPEG, PNG, GIF and HEIC files smaller by removing metadata (camera details, location, editor notes) and storing the same pixels more efficiently. The decoded pixels are identical to the original, and a file never comes out larger. It runs entirely on the Mac: no uploads, no account, no analytics. Free and open source under the MIT License. Requires macOS 13 or later, on Apple silicon or Intel.
+
+## Pages
+
+- [Home](https://slimg.app/): what Slimg does, its features and price (free)
+- [Download](https://slimg.app/download): the app (Slimg.dmg) and the slimg command-line tool
+- [Support](https://slimg.app/support): getting started, command-line options, troubleshooting, questions, and the contact form
+- [Privacy](https://slimg.app/privacy): Slimg keeps nothing and sends nothing; everything stays on the Mac
+- [Release notes](https://slimg.app/release-notes): what changed in each version
+
+## Facts
+
+- Current version: 1.1.0
+- Formats: JPEG, PNG, GIF, HEIC and HEIF (HEVC images)
+- Price: free
+- License: MIT (https://slimg.app/license)
+- Source code: https://slimg.app/source
+- Contact: the form at https://slimg.app/support#contact

@@ -38,8 +38,9 @@ common web/photo formats, shipped as both an app and a CLI.
 - 🔧 CI: build + test on push/PR (`.github/workflows/ci.yml`).
 - 🔧 Release automation: tag → universal `Slimg.dmg` + `slimg-cli-macos.tar.gz`
   published to GitHub Releases (`.github/workflows/release.yml`).
-- 🔧 Landing site at [slimg.app](https://slimg.app), deployed from `site/`
-  (`.github/workflows/pages.yml`), download button → `releases/latest`.
+- 🔧 Site at [slimg.app](https://slimg.app), rebuilt on the Ladrillo Studio app
+  site recipe in `web/` and served by a Cloudflare Worker; download links
+  redirect to `releases/latest`.
 - ✅ Docs: README, this roadmap, CONTRIBUTING, LICENSE (MIT), CHANGELOG.
 - 📌 First tagged release `v1.0.0`.
 
@@ -126,9 +127,10 @@ These are deliberate. Saying no keeps the promise on the tin.
    **`Slimg.dmg`** and **`slimg-cli-macos.tar.gz`**, and publishes them to a
    **GitHub Release**. The app version is stamped from the tag
    (`SLIMG_VERSION` → bundled `Info.plist`).
-4. The site's download button always points at
+4. The site's download links (`slimg.app/download/…`) redirect to
    [`releases/latest`](https://github.com/nicoschtein/slimg/releases/latest),
-   so it picks up the new build automatically.
+   so they pick up the new build automatically. Add the release to
+   `web/pages/release-notes.html` and bump `VERSION` in `web/build.py`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes that fit this
 roadmap.

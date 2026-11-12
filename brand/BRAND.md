@@ -97,24 +97,30 @@ SwiftUI: `LinearGradient(colors: [#2DD4BF, #06B6D4], startPoint: .topLeading, en
 | Warning  | `#F59E0B`  | "skipped / already optimal"          |
 | Danger   | `#EF4444`  | Errors / failures                    |
 
-Always support light **and** dark appearance. On the web, default to a dark
-hero with light content sections. In the macOS app, follow the system
-appearance and use the teal tint as accent in both.
+Always support light **and** dark appearance. In the macOS app, follow the
+system appearance and use the teal tint as accent in both.
+
+**The website** follows the Ladrillo Studio app site recipe (`web/README.md`):
+the studio's neutral grays, with Slimg's own tokens on top. Accent `#0B7F75`
+light (a deeper Teal 600, for text contrast on light gray) and Teal 400
+`#2DD4BF` dark; the hero gradient runs from Teal 600 through cyan to Ink 900
+(`linear-gradient(135deg,#0D9488,#0E7490 45%,#0E1626)`), so white type stays
+readable on it.
 
 ## 5. Typography
 
-- **Headings / display:** `Inter` on the web (700/600, tracking `-0.02em` at
-  large sizes); **SF Pro / system** in the app (`.system(..., design: .rounded)`
-  is acceptable for numerics/badges).
-- **Body / UI:** `Inter` (web) / system (app), 400–500.
+- **Headings / display:** the system font (SF Pro) everywhere, 700/600 with
+  tracking `-0.02em` at large sizes. The website uses the system font stack only,
+  no web fonts (studio rule). In the app, `.system(..., design: .rounded)`
+  is acceptable for numerics/badges.
+- **Body / UI:** system font, 400–500.
 - **Monospace** (CLI snippets, byte counts, code): `"SF Mono", ui-monospace,
   "JetBrains Mono", Menlo, monospace`. Use monospaced digits for size/percent
   figures (`.monospacedDigit()` in SwiftUI, `font-variant-numeric: tabular-nums`
   on the web).
 
-Web font loading: self-host or use a `font-display: swap` web font for Inter,
-with a robust system fallback: `Inter, -apple-system, BlinkMacSystemFont,
-"Segoe UI", Roboto, sans-serif`.
+Web font stack: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+Roboto, "Helvetica Neue", Arial, sans-serif`.
 
 ## 6. Logo
 
@@ -139,7 +145,7 @@ Master files (do not redraw by hand — reuse these):
 
 ### Wordmark
 
-`slimg` set lowercase in Inter/SF **700**, tracking `-0.03em`, in Graphite
+`slimg` set lowercase in SF **700**, tracking `-0.03em`, in Graphite
 (light) or White (dark). The mark sits to the **left** with clearspace equal to
 the cap-height. Optionally the mark uses the Slimg Gradient while the word stays
 neutral — never gradient-fill the text and the mark at once.
@@ -173,17 +179,18 @@ These exact names/paths are a contract between the app, icon, CI, site and docs:
   (i.e. up to 1024), built with `iconutil`.
 - **Web icon exports** (produced by the icon generator into `brand/web/`):
   `favicon.svg`, `favicon-32.png`, `favicon-180.png` (apple-touch),
-  `icon-512.png`, `og-image.png` (1200×630 social card). The site references
-  copies of these under `site/assets/`.
+  `icon-512.png`, `og-image.png` (1200×630 social card). `web/build.py` copies
+  `favicon-32.png` and `favicon-180.png` (as `apple-touch-icon.png`) into
+  `web/site/`; the site's own share image is `web/site/og.png`.
 - **Bundle id:** `com.aguara.slimg`. **Min macOS:** 13.0.
 - **CI workflow filenames:** `.github/workflows/ci.yml` (build+test on push/PR),
-  `.github/workflows/release.yml` (tag → signed app + CLI + GitHub Release),
-  `.github/workflows/pages.yml` (deploy `site/` to GitHub Pages).
-- **Release asset names** (what the site's download button links to):
+  `.github/workflows/release.yml` (tag → signed app + CLI + GitHub Release).
+  The website deploys by hand with wrangler (`web/README.md`).
+- **Release asset names** (what `slimg.app/download/…` redirects to):
   - `Slimg.dmg` — universal (arm64 + x86_64) drag-to-install app.
   - `slimg-cli-macos.tar.gz` — universal CLI binary + README + LICENSE.
   - Download landing URL: `https://github.com/nicoschtein/slimg/releases/latest`.
-- **Custom domain:** `slimg.app` (GitHub Pages `CNAME` = `slimg.app`).
+- **Domain:** `slimg.app`, a custom domain on the site's Cloudflare Worker.
 - **Versioning:** semver; release tags are `vX.Y.Z`; the app's
   `CFBundleShortVersionString` is injected from the tag in CI.
 
