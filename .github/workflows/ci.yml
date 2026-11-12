@@ -20,7 +20,7 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # Use a recent stable Xcode (and thus Swift toolchain) on the runner.
       - name: Select Xcode
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # web/site/ is generated from web/pages/ by web/build.py. Fail when
       # someone edits one without rebuilding the other.
@@ -79,7 +79,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Lint with swiftformat (if available)
         run: |
