@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-test:
     name: Build & Test
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -73,7 +73,7 @@ jobs:
 
   lint:
     name: Format lint (non-blocking)
-    runs-on: macos-14
+    runs-on: macos-15
     # Never block CI on style. swiftformat is only run if it is installed on the
     # runner; otherwise this job is a no-op.
     continue-on-error: true
