@@ -184,3 +184,10 @@ rm -rf /private/tmp/slimg-cf
   (302) to GitHub; www redirects (301) to the apex; a cross-origin post to
   `/contact` gets 403; and one real test message sent through the support
   form reached the inbox.
+- **November 11, 2026.** Redeployed for Slimg 1.1.1, after the release was
+  published. Checked live: every page returns 200, the home and download
+  pages show version 1.1.1, the release notes lead with 1.1.1, the CSP header
+  is on `/`, a cross-origin post to `/contact` gets 403, and
+  `/download/Slimg.dmg` serves the 1.1.1 DMG with a matching SHA-256. The
+  `cf` CLI (`cf dns records ...`) can change the zone's DNS records, which
+  `wrangler` can't.
