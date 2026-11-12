@@ -19,7 +19,7 @@ const LIMITS = { email: 254, message: 5000, versions: 120 };
 // percent-encoded, per UTF-16 unit), plus the field names. Anything larger is
 // not from our form.
 const MAX_BODY = (LIMITS.email + LIMITS.message + LIMITS.versions + 40) * 9 + 200;
-const FROM = "form@ladrillostudio.com";
+const FROM = "form@slimg.app";
 const NOT_SENT = "/support/not-sent";
 
 // The browser's own rule for type="email" (HTML Standard, "valid email
@@ -144,7 +144,7 @@ async function contact(request, env) {
     `To: ${header(to)}`,
     `Reply-To: ${email}`,
     `Subject: ${encodedHeader(`[Slimg] ${topic}: ${header(firstLine)}`)}`,
-    `Message-ID: <${crypto.randomUUID()}@ladrillostudio.com>`,
+    `Message-ID: <${crypto.randomUUID()}@slimg.app>`,
     `Date: ${new Date().toUTCString()}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=utf-8",
