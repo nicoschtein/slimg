@@ -48,18 +48,10 @@ final class JPEGColorSpaceTests: XCTestCase, JPEGFixtures {
         XCTAssertEqual(before?.copyICCData() as Data?, after?.copyICCData() as Data?, file: file, line: line)
     }
 
-    // MARK: - Premise
-
-    /// The fix only matters if ImageIO honors the EXIF marker. If this fails,
-    /// ImageIO ignores R03 and keeping it is unnecessary.
-    func testImageIORendersEXIFAdobeRGBMarkerDifferently() throws {
-        let base = baseJPEG()
-        for bigEndian in [false, true] {
-            let tagged = inserting(adobeRGBSegment(bigEndian: bigEndian), into: base)
-            XCTAssertNotEqual(try pixels(Data(tagged), in: sRGB), try pixels(Data(base), in: sRGB),
-                              "ImageIO should render an R03-tagged JPEG as Adobe RGB, not sRGB")
-        }
-    }
+    // The marker is kept for software that follows DCF and reads R03 as Adobe
+    // RGB. ImageIO isn't one of them: on macOS 15 and 26 it decodes an
+    // R03-tagged JPEG with no ICC profile as sRGB, the same as an untagged one,
+    // so these tests check the marker's bytes rather than ImageIO's rendering.
 
     // MARK: - Color space kept
 
