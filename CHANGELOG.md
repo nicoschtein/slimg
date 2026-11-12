@@ -7,7 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet. See the [Roadmap](ROADMAP.md) for what's planned._
+### Changed
+
+- The slimg.app website is rebuilt on the Ladrillo Studio app site recipe in
+  `web/`: new home page, download, support (with a contact form), privacy and
+  release notes pages, served by a Cloudflare Worker instead of GitHub Pages.
+
+### Fixed
+
+- **JPEG orientation is preserved** when stripping metadata. Camera and phone
+  photos that store their rotation only in the EXIF Orientation tag no longer
+  appear rotated or mirrored after optimization: the EXIF block is replaced by a
+  minimal one carrying just the Orientation (reported as "EXIF metadata (APP1),
+  orientation kept").
+- **JPEG Adobe RGB color is preserved** when stripping metadata. Photos from
+  cameras set to Adobe RGB that embed no ICC profile mark their color space only
+  in EXIF (Interoperability index "R03"); that marker is now kept in the minimal
+  EXIF segment while color profiles are kept, so colors no longer shift toward
+  sRGB. It is dropped when an ICC profile is embedded or with `--strip-color`.
+- When the EXIF structures holding the orientation or the Adobe RGB marker are
+  malformed, truncated or laid out non-standardly, the EXIF segment is now kept
+  as-is rather than guessed at. A pointer leading past the end of the EXIF data
+  counts as absent, since no reader can follow it.
+
+## [1.1.0] - 2026-10-26
+
+### Added
+
+- **Seven optional lossless methods**, all disabled by default in the app and
+  CLI: PNG filter/zlib strategy search, Zopfli, exact representation reductions,
+  chunk/profile optimization, JPEG Huffman and progressive coefficient coding,
+  and GIF LZW recompression with unchanged frame indices and animation controls.
+- Pinned libjpeg-turbo and Google Zopfli C sources built into Slimg, with license
+  notices included in app and CLI distributions. No external tools required.
+- Native-precision PNG and independent ImageIO GIF/JPEG verification, savings
+  fixtures, malformed-input checks, and default-off coverage.
+
+- **HEIC/HEIF support** for iPhone photos in the app and CLI, including folder
+  drops, the file picker and Finder document types. Uses macOS ImageIO to strip
+  descriptive metadata without re-encoding image data, preserving orientation
+  and color profiles. Unsupported layouts remain unchanged.
+
+### Changed
+
+- Release builds run the full test suite before packaging the app and CLI.
+- The website documents all seven optional compression flags, their default-off
+  behavior, format-specific features, and usage examples.
 
 ## [1.0.0] - 2026-06-15
 
@@ -47,5 +92,6 @@ the input and is never larger than the original.
 - **Test suite** enforcing pixel identity and the "never grows" guarantee.
 - **Universal app bundling** via `Scripts/build-app.sh` (arm64 + x86_64).
 
-[Unreleased]: https://github.com/nicoschtein/slimg/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nicoschtein/slimg/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/nicoschtein/slimg/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nicoschtein/slimg/releases/tag/v1.0.0

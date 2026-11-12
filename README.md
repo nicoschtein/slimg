@@ -7,7 +7,7 @@
 ### Slim your images. Lose nothing.
 
 Lossless image optimizer for macOS. Slimg strips metadata and re-packs
-JPEG, PNG and GIF files so they get smaller **without ever changing a single
+JPEG, PNG, GIF and HEIC files so they get smaller **without ever changing a single
 pixel** — the output decodes byte-for-byte identically to the input, and is
 never larger than what you started with.
 
@@ -59,8 +59,8 @@ image untouched. It does one thing carefully:
   byte-identical pixels, and the file is never larger than the input.
 - **Private by design.** 100% on-device. No uploads, no servers, no accounts,
   no telemetry. Your images never leave your Mac.
-- **Native & fast.** A small, pure-Swift macOS app and CLI. No Electron, no
-  bundled third-party binaries, no background daemons.
+- **Native & local.** A Swift macOS app and CLI with compiled-in JPEG and Zopfli
+  libraries. No Electron, separately installed tools, or background daemons.
 - **Transparent.** An advanced report shows exactly what was removed (EXIF,
   XMP, IPTC, comments, timestamps, re-deflated PNG data) and how many bytes
   each item saved. Open source, auditable.
@@ -86,14 +86,14 @@ it never compounds loss because there is no loss.
 
 ## Screenshots
 
-> **TODO (assets):** app screenshots and the animated demo live on the
-> [website](https://slimg.app) and under `docs/` once captured. Placeholders are
+> **TODO (assets):** app screenshots live under `docs/` once captured. The
+> website uses stand-in window images until then (see `web/README.md`). Placeholders are
 > noted here so the layout is ready:
 >
 > - `docs/screenshot-drop.png` — drag-and-drop empty state
 > - `docs/screenshot-results.png` — file list with savings and the advanced report
 >
-> Until those are added, see [slimg.app](https://slimg.app) for the live demo.
+> Until those are added, see [slimg.app](https://slimg.app) for a look at the app.
 
 ## Install
 
@@ -108,8 +108,10 @@ GUI) and the **`slimg`** command-line tool. Requires **macOS 13 or newer**.
 
 > **First launch (open source, ad-hoc signed builds):** Slimg is open source.
 > If a build is not yet Developer-ID notarized, macOS Gatekeeper may refuse to
-> open it on the first try. **Right-click (or Control-click) the app → Open →
-> Open** to launch it the first time. You only need to do this once. Notarized,
+> open it on the first try. Click **Done**, then open **System Settings →
+> Privacy & Security**, scroll to **Security** and click **Open Anyway** next to
+> the Slimg message, confirming with your password. (On macOS 15 and later the
+> old right-click → Open shortcut no longer works.) You only need to do this once. Notarized,
 > Developer-ID-signed builds are on the [roadmap](ROADMAP.md).
 
 ### 2. Download the CLI
@@ -148,8 +150,10 @@ swift test
 ```
 
 The compiled CLI lands in `.build/release/slimg`, and `build-app.sh` produces
-`Slimg.app` in the repo root. Slimg is pure Swift and links the system `zlib`
-(`-lz`); there are no bundled third-party binaries.
+`Slimg.app` in the repo root. Slimg links system `zlib` and builds pinned,
+vendored libjpeg-turbo and Google Zopfli sources into the app and CLI. No
+additional tools or package downloads are needed to build or use Slimg. See
+[third-party notices](THIRD_PARTY_NOTICES.md) for versions and licenses.
 
 ## Usage
 
@@ -157,8 +161,8 @@ The compiled CLI lands in `.build/release/slimg`, and `build-app.sh` produces
 
 1. Open **Slimg**.
 2. **Drag images (or a folder) onto the window**, or click **Add Images**
-   (`⌘O`). Folders are scanned recursively for `.jpg`, `.jpeg`, `.png` and
-   `.gif` files.
+   (`⌘O`). Folders are scanned recursively for `.jpg`, `.jpeg`, `.png`, `.gif`,
+   `.heic` and `.heif` files.
 3. Each file is optimized as it's added. The footer shows total bytes saved;
    each row shows its savings and a button to open the **advanced report**
    listing exactly what was removed.
@@ -168,6 +172,25 @@ original name and backs the original up as `name.bak.ext`. Turn it off (in the
 header toggle or in **Settings**) to optimize in place. Settings also expose
 metadata stripping, ICC color-profile stripping (off by default), and lossless
 PNG re-compression.
+
+**Additional lossless optimization** settings are all **off by default**:
+
+| Setting | What it tries |
+|---|---|
+| Deep PNG compression | Reversible scanline filters and multiple zlib strategies. |
+| Maximum PNG compression (Zopfli) | A slower search for a smaller DEFLATE stream. |
+| Reduce PNG color storage exactly | Exact palettes, opaque-alpha removal, and exactly representable sample/index depths. No quantization. |
+| Optimize PNG chunks and profiles | Consolidate image chunks and recompress retained ICC profiles without changing their contents. |
+| Optimize JPEG Huffman coding | Encode existing JPEG coefficients with optimized entropy tables. |
+| Try progressive JPEG encoding | Try a progressive scan arrangement of the existing coefficients. |
+| Recompress GIF image data | Recompress unchanged frame indices; preserve palettes, frame layout, transparency, disposal, timing, and looping. |
+
+Only smaller results are retained. Advanced methods have resource limits and
+conservatively skip unsupported layouts. PNG representation changes preserve
+native sample values, including RGB hidden under full transparency, and skip
+animation, interlacing, HDR, and metadata needing unsupported rewrites. Zopfli
+is limited to 1 MiB of filtered image data. These settings can take considerably
+longer; savings depend on how the original file was encoded.
 
 ### The CLI
 
@@ -210,14 +233,25 @@ $ slimg --dry-run --report screenshot.png
 | `--backup`, `--copy` | Keep the original as `name.bak.ext`; write the optimized image under its original name. (Off by default — the CLI optimizes in place unless you ask for a backup.) |
 | `--report`, `-v` | Print an advanced breakdown of what was removed. |
 | `--keep-metadata` | Do **not** strip EXIF / XMP / IPTC / comments. |
-| `--strip-color` | Also strip ICC color profiles (may shift colors). |
+| `--strip-color` | Also strip ICC color profiles (may shift colors). HEIC profiles are always kept. |
 | `--no-recompress` | Skip lossless PNG re-compression. |
+| `--deep-png` | Try additional reversible PNG filters and compression strategies. |
+| `--zopfli-png` | Try maximum PNG compression (much slower). |
+| `--reduce-png` | Try exact PNG color/sample storage reductions. |
+| `--optimize-png` | Consolidate PNG image chunks and recompress retained profiles. |
+| `--optimize-jpeg` | Optimize JPEG Huffman coding without changing coefficients. |
+| `--progressive-jpeg` | Try progressive JPEG coding without changing coefficients. |
+| `--recompress-gif` | Recompress GIF frame indices without changing the animation. |
 | `-h`, `--help` | Show usage. |
 
 Run with no arguments (or `--help`) to print usage. Unsupported files are
 skipped; files that are already optimal are left untouched. Pixels are never
 altered, and output is never larger than the input. Supported formats: JPEG,
-PNG, GIF.
+PNG, GIF, HEIC/HEIF (HEVC images).
+
+The seven additional methods require their explicit flags. `--no-recompress`
+disables the standard PNG pass; an explicit advanced flag still enables its
+own method. Metadata controls apply independently of compression settings.
 
 > **Note:** the CLI operates on the paths you give it — it does not recurse into
 > directories. To process a tree, expand it with your shell (e.g.
@@ -225,7 +259,8 @@ PNG, GIF.
 
 ## How it works
 
-Slimg parses each container itself and rewrites only the parts that don't affect
+Slimg parses JPEG, PNG and GIF containers itself, and uses macOS ImageIO's
+lossless copy operation for HEIC. It rewrites only the parts that don't affect
 rendered pixels. On any structural surprise an optimizer bails out and the
 original bytes are kept verbatim, so a file Slimg doesn't fully understand is
 never corrupted. A final safety net guarantees the output is never larger than
@@ -235,18 +270,45 @@ unchanged.
 - **JPEG** — drops metadata marker segments: APP1 (EXIF/XMP), APP3–APP13,
   APP15, and `COM` comments. APP0 (JFIF) and APP14 (Adobe) are kept because
   they're needed to interpret the image; an APP2 ICC profile is kept by default.
+  When the EXIF block records a rotation or mirroring (Orientation other than
+  1, as camera and phone photos often do), it is replaced by a minimal EXIF
+  segment holding only that Orientation tag, in the original byte order, so the
+  photo still displays upright. Likewise, a camera that shot in Adobe RGB
+  without embedding an ICC profile marks that only in EXIF (Interoperability
+  index `R03`, normally with ColorSpace "Uncalibrated"); while color profiles
+  are kept and none is embedded, that marker stays in the minimal segment so
+  colors render as before. `--strip-color` drops it with the rest of EXIF. If
+  the EXIF structures involved are malformed, truncated, or carry the marker
+  in a non-standard layout readers may disagree on, the segment is kept
+  untouched rather than guessed at; a pointer leading past the end of the EXIF
+  data counts as absent, since no reader can follow it.
   The entropy-coded scan data (everything from `SOS` onward) is copied
-  byte-for-byte, which is what makes the change lossless.
+  byte-for-byte by default. Optional Huffman/progressive optimization reads and
+  writes the existing quantized coefficients through libjpeg-turbo without
+  decoding/re-encoding pixels or changing quantization/subsampling. It retains
+  only smaller candidates and preserves the remaining marker metadata.
 - **PNG** — drops metadata chunks (`tEXt`, `zTXt`, `iTXt`, `tIME`, `eXIf`) and,
   only if you ask, `iCCP`. It also re-inflates and **re-deflates the `IDAT`
   image data at zlib level 9**: the decompressed filtered scanlines are
   identical, so decoded pixels are unchanged — only the compression is tighter.
   All rendering-relevant chunks (`IHDR`, `PLTE`, `tRNS`, `gAMA`, `cHRM`, `sRGB`,
-  `sBIT`, `bKGD`, `pHYs`, …) are preserved.
+  `sBIT`, `bKGD`, `pHYs`, …) are preserved. Optional deep filtering, exact
+  representation reductions, chunk/profile optimization and Zopfli compression
+  extend this path without changing samples or color interpretation.
 - **GIF** — drops Comment Extensions and non-essential Application Extensions
   (e.g. XMP). The `NETSCAPE` looping extension, all graphic-control extensions,
   color tables and the LZW image data are preserved, so frames and animation
-  timing are untouched.
+  timing are untouched. Optional LZW recompression rewrites the compression of
+  exactly the same indices, retaining descriptors, palettes and animation
+  controls verbatim; frame cropping and delta rewriting are not performed.
+- **HEIC / HEIF** — removes known descriptive EXIF, GPS, XMP and IPTC metadata
+  using `CGImageDestinationCopyImageSource`, which copies compressed image data
+  without re-encoding it. Orientation, color profiles and unfamiliar metadata
+  namespaces (which can carry HDR rendering information) are preserved. The
+  report gives combined metadata and container savings. HEIC color profiles
+  are always retained, including with `--strip-color`. Files that ImageIO cannot
+  copy losslessly, and multi-image collections, are left untouched. This supports
+  HEVC images in `.heic` / `.heif` files, not AVIF or other HEIF codecs.
 
 Color profiles (ICC) are **kept by default** in every format — stripping them
 can shift how colors appear, so it's strictly opt-in (`--strip-color`, or the
@@ -269,8 +331,10 @@ Settings toggle in the app).
 
 ```
 Sources/
-  SlimgCore/    Lossless optimizers (JPEG, PNG, GIF) + zlib wrapper — the engine
+  SlimgCore/    Lossless optimizers (JPEG, PNG, GIF, HEIC) + zlib wrapper — the engine
   CZlib/        Tiny C shim that links the system zlib
+  CJPEG/        Pinned libjpeg-turbo sources and a coefficient-copy C bridge
+  CZopfli/      Pinned Google Zopfli compression sources and C bridge
   slimg/        Command-line tool (main.swift)
   SlimgApp/     SwiftUI macOS app (Slimg.app)
 Tests/
@@ -279,7 +343,7 @@ Scripts/
   build-app.sh      Assembles Slimg.app from the SwiftPM build product
 Resources/          Info.plist, app icon
 brand/              Brand guidelines, logomark, wordmark, icon master
-site/               Landing page sources (slimg.app)
+web/                The slimg.app website and its Cloudflare Worker
 ```
 
 ## Contributing

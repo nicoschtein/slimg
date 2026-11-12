@@ -38,8 +38,9 @@ common web/photo formats, shipped as both an app and a CLI.
 - 🔧 CI: build + test on push/PR (`.github/workflows/ci.yml`).
 - 🔧 Release automation: tag → universal `Slimg.dmg` + `slimg-cli-macos.tar.gz`
   published to GitHub Releases (`.github/workflows/release.yml`).
-- 🔧 Landing site at [slimg.app](https://slimg.app), deployed from `site/`
-  (`.github/workflows/pages.yml`), download button → `releases/latest`.
+- 🔧 Site at [slimg.app](https://slimg.app), rebuilt on the Ladrillo Studio app
+  site recipe in `web/` and served by a Cloudflare Worker; download links
+  redirect to `releases/latest`.
 - ✅ Docs: README, this roadmap, CONTRIBUTING, LICENSE (MIT), CHANGELOG.
 - 📌 First tagged release `v1.0.0`.
 
@@ -53,6 +54,8 @@ common web/photo formats, shipped as both an app and a CLI.
 Smoothing the edges and making install frictionless, without adding any lossy
 behavior.
 
+- ✅ Lossless **HEIC/HEIF** metadata stripping through macOS ImageIO without
+  re-encoding; orientation and color profiles preserved (unreleased).
 - 📌 **Notarized, Developer-ID-signed builds** so the app launches without the
   right-click→Open dance. (The build script already supports a real signing
   identity and hardened runtime via `SLIMG_SIGN_IDENTITY`; this is wiring it
@@ -83,15 +86,14 @@ lossless.
     lossless WebP files only.
   - **SVG** — minify markup (whitespace/metadata/editor cruft) without changing
     the rendered vector.
-  - **HEIC** — metadata stripping where it can be done without re-encoding the
-    image payload. (Lossy HEIC re-encode is **out of scope.**)
 - 💭 **Finder integration** — a Quick Action / Services entry and a Shortcuts
   action so you can slim images from the right-click menu or an automation.
 - 💭 **Parallel batch processing** — optimize multiple files concurrently for
   faster folder runs.
-- 💭 **Optional advanced PNG strategies** (still strictly lossless) — e.g.
-  trying multiple filter heuristics and keeping the smallest, or safe bit-depth
-  / palette reductions that preserve every pixel exactly.
+- ✅ **Optional advanced compression** (unreleased; all off by default): PNG
+  filter/zlib strategy search, exact sample/palette reductions, IDAT/profile
+  optimization and Zopfli; JPEG Huffman/progressive coefficient coding; GIF
+  index-preserving LZW recompression. Unsupported cases remain unchanged.
 - 💭 **Mac App Store distribution** — would require sandboxing; the in-place,
   arbitrary-folder workflow needs to be reconciled with the sandbox first.
 
@@ -105,9 +107,10 @@ These are deliberate. Saying no keeps the promise on the tin.
   quantizing PNG palettes to fewer colors, or any "visually lossless" scheme
   that changes pixels contradicts Slimg's founding principle. Use a dedicated
   lossy tool for that.
-- ❌ **Bundling external CLI binaries** (e.g. `pngquant`, `mozjpeg`, `gifsicle`,
-  `optipng`). Slimg is pure Swift with the system `zlib` and stays that way:
-  auditable, small, no third-party binaries to trust or update.
+- ❌ **Requiring external CLI tools** (e.g. `pngquant`, `mozjpeg`, `gifsicle`,
+  `optipng`). Optional compression uses pinned libraries compiled into Slimg;
+  no user installation or runtime download is required. Vendored sources,
+  licenses, and provenance are included in the repository.
 - ❌ **Servers, accounts, uploads, telemetry.** Slimg is 100% on-device and
   stays that way.
 - ❌ **Stripping color profiles by default.** It can shift colors, so it remains
@@ -124,9 +127,10 @@ These are deliberate. Saying no keeps the promise on the tin.
    **`Slimg.dmg`** and **`slimg-cli-macos.tar.gz`**, and publishes them to a
    **GitHub Release**. The app version is stamped from the tag
    (`SLIMG_VERSION` → bundled `Info.plist`).
-4. The site's download button always points at
+4. The site's download links (`slimg.app/download/…`) redirect to
    [`releases/latest`](https://github.com/nicoschtein/slimg/releases/latest),
-   so it picks up the new build automatically.
+   so they pick up the new build automatically. Add the release to
+   `web/pages/release-notes.html` and bump `VERSION` in `web/build.py`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes that fit this
 roadmap.

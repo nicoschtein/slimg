@@ -48,7 +48,7 @@ jobs:
           echo "Building Slimg version: $VERSION"
 
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .build
@@ -57,6 +57,9 @@ jobs:
           key: spm-release-${{ runner.os }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
           restore-keys: |
             spm-release-${{ runner.os }}-
+
+      - name: Test before packaging
+        run: swift test
 
       # ---------------------------------------------------------------------
       # Generate the app icon (.icns) and web assets before packaging so the
@@ -216,6 +219,12 @@ jobs:
           mkdir -p "$STAGE"
           cp "$CLI_BIN" "$STAGE/slimg"
           if [ -f LICENSE ]; then cp LICENSE "$STAGE/LICENSE"; fi
+          mkdir -p "$STAGE/ThirdPartyLicenses"
+          cp THIRD_PARTY_NOTICES.md "$STAGE/THIRD_PARTY_NOTICES.md"
+          cp Sources/CJPEG/LICENSE.md "$STAGE/ThirdPartyLicenses/libjpeg-turbo-LICENSE.md"
+          cp Sources/CJPEG/README.ijg "$STAGE/ThirdPartyLicenses/libjpeg-turbo-README.ijg"
+          cp Sources/CZopfli/COPYING "$STAGE/ThirdPartyLicenses/Zopfli-COPYING"
+          cp Sources/CZopfli/CONTRIBUTORS "$STAGE/ThirdPartyLicenses/Zopfli-CONTRIBUTORS"
           {
             printf 'Slimg CLI %s - lossless image optimizer for macOS\n' "$VERSION"
             printf 'https://github.com/nicoschtein/slimg\n\n'
@@ -243,7 +252,7 @@ jobs:
       # Create the GitHub Release and upload the artifacts + checksums.
       # ---------------------------------------------------------------------
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', steps.meta.outputs.version) }}
           name: Slimg ${{ steps.meta.outputs.version }}

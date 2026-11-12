@@ -4,6 +4,7 @@ public enum ImageFormat: String, Sendable {
     case jpeg
     case png
     case gif
+    case heic
     case unknown
 }
 
@@ -19,10 +20,35 @@ public struct OptimizationOptions: Sendable {
     /// Re-compress losslessly (PNG zlib re-deflate at maximum level).
     public var recompress: Bool
 
-    public init(stripMetadata: Bool = true, keepColorProfile: Bool = true, recompress: Bool = true) {
+    /// Try additional reversible PNG filters and zlib compression strategies.
+    public var pngDeepCompression: Bool
+    /// Spend extra CPU on Zopfli compression of unchanged PNG scanline bytes.
+    public var pngZopfli: Bool
+    /// Use a smaller PNG representation only when every sample is preserved.
+    public var pngReduceRepresentation: Bool
+    /// Consolidate PNG image chunks and recompress retained profiles losslessly.
+    public var pngOptimizeStructure: Bool
+    /// Optimize JPEG entropy coding without changing quantized coefficients.
+    public var jpegOptimizeHuffman: Bool
+    /// Try progressive JPEG scan coding without changing quantized coefficients.
+    public var jpegProgressive: Bool
+    /// Recompress GIF image indices without changing frames or color tables.
+    public var gifRecompress: Bool
+
+    public init(stripMetadata: Bool = true, keepColorProfile: Bool = true, recompress: Bool = true,
+                pngDeepCompression: Bool = false, pngZopfli: Bool = false, pngReduceRepresentation: Bool = false,
+                pngOptimizeStructure: Bool = false, jpegOptimizeHuffman: Bool = false,
+                jpegProgressive: Bool = false, gifRecompress: Bool = false) {
         self.stripMetadata = stripMetadata
         self.keepColorProfile = keepColorProfile
         self.recompress = recompress
+        self.pngDeepCompression = pngDeepCompression
+        self.pngZopfli = pngZopfli
+        self.pngReduceRepresentation = pngReduceRepresentation
+        self.pngOptimizeStructure = pngOptimizeStructure
+        self.jpegOptimizeHuffman = jpegOptimizeHuffman
+        self.jpegProgressive = jpegProgressive
+        self.gifRecompress = gifRecompress
     }
 }
 
@@ -102,6 +128,7 @@ public enum Slimg {
            b[4] == 0x0D, b[5] == 0x0A, b[6] == 0x1A, b[7] == 0x0A { return .png }
         if b.count >= 6, b[0] == 0x47, b[1] == 0x49, b[2] == 0x46, b[3] == 0x38,
            (b[4] == 0x37 || b[4] == 0x39), b[5] == 0x61 { return .gif }
+        if HEICOptimizer.isHEIC(data) { return .heic }
         return .unknown
     }
 
@@ -117,6 +144,7 @@ public enum Slimg {
         case .jpeg: output = JPEGOptimizer.optimize(bytes, options: options)
         case .png:  output = PNGOptimizer.optimize(bytes, options: options)
         case .gif:  output = GIFOptimizer.optimize(bytes, options: options)
+        case .heic: output = HEICOptimizer.optimize(data, options: options)
         case .unknown: output = nil
         }
 

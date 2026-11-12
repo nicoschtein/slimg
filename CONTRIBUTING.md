@@ -33,9 +33,10 @@ In practice this means:
 - **macOS 13 or newer.**
 - **Xcode 15+** (a Swift 5.9+ toolchain). Slimg builds with current Swift
   releases as well. The package declares `swift-tools-version: 5.9`.
-- No other dependencies. Slimg is pure Swift and links the **system `zlib`**
-  (`-lz`) via a tiny C shim (`Sources/CZlib`). There are no third-party
-  packages to fetch.
+- Slimg links **system `zlib`** (`-lz`) and compiles pinned, vendored
+  libjpeg-turbo and Google Zopfli C sources. There are no packages to fetch or
+  external command-line tools required. Preserve upstream notices and source
+  provenance when updating these libraries; see `THIRD_PARTY_NOTICES.md`.
 
 ## Build, test, run
 
@@ -66,8 +67,10 @@ still runs locally.
 Sources/
   SlimgCore/    The engine. Slimg.swift (public API, format detection, the
                 "never grows" safety net) + JPEGOptimizer / PNGOptimizer /
-                GIFOptimizer + Zlib.swift (zlib wrapper).
+                GIFOptimizer / HEICOptimizer + Zlib.swift (zlib wrapper).
   CZlib/        C shim + modulemap that links the system zlib.
+  CJPEG/        Vendored libjpeg-turbo + bounded coefficient-copy bridge.
+  CZopfli/      Vendored Google Zopfli + bounded compression bridge.
   slimg/        CLI: main.swift (arg parsing, file I/O, report printing).
   SlimgApp/     SwiftUI app: SlimgApp (entry), ContentView, OptimizerModel
                 (processing + backups), SettingsView, Theme/BrandMark.
@@ -78,7 +81,7 @@ Scripts/
   build-app.sh      Assembles Slimg.app from the SwiftPM build product.
 Resources/          Info.plist and the app icon.
 brand/              Brand guidelines (BRAND.md), logomark, wordmark, icon.
-site/               Landing page sources for slimg.app.
+web/                The slimg.app website and its Cloudflare Worker (see web/README.md).
 ```
 
 The public API lives in `Sources/SlimgCore/Slimg.swift`:
@@ -94,7 +97,8 @@ Each format optimizer is a small enum with a single
 
 1. **Create** `Sources/SlimgCore/TIFFOptimizer.swift` following the existing
    ones as a template. Validate the magic bytes first; parse the container
-   yourself; **return `nil` on anything unexpected.**
+   yourself or use an API that guarantees a lossless compressed-data copy;
+   **return `nil` on anything unexpected.**
 2. **Strip only non-pixel data.** Drop metadata, re-pack/re-deflate the existing
    compressed data only if the result is verifiably smaller and decodes
    identically. Never touch the pixel payload.
