@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The slimg.app website is rebuilt on the Ladrillo Studio app site recipe in
+  `web/`: new home page, download, support (with a contact form), privacy and
+  release notes pages, served by a Cloudflare Worker instead of GitHub Pages.
+
 ### Fixed
 
 - **JPEG orientation is preserved** when stripping metadata. Camera and phone

@@ -1,0 +1,28 @@
+<main id="main" class="wrap doc">
+  <h1>Release notes</h1>
+  <p class="lede">What's new in Slimg, newest version first.</p>
+
+  <section class="release" aria-labelledby="v110">
+    <h2 id="v110">Slimg 1.1.0</h2>
+    <p class="when">October 26, 2026</p>
+    <ul>
+      <li><b>iPhone photos.</b> Slimg now works with HEIC and HEIF photos. It removes location, camera and other descriptive data without re-encoding the picture, and keeps the orientation and color profile.</li>
+      <li><b>Seven more ways to save space.</b> New settings for deep PNG compression, Zopfli, exact PNG color storage, PNG chunk and profile optimization, JPEG Huffman coding, progressive JPEG and GIF recompression. All are off until you turn them on, never change a pixel, and keep a result only when it's smaller.</li>
+      <li><b>Nothing else to install.</b> The extra compression libraries are built into the app and the command-line tool.</li>
+      <li><b>Checked before release.</b> Every build now runs the full test suite before it's packaged.</li>
+    </ul>
+  </section>
+
+  <section class="release" aria-labelledby="v100">
+    <h2 id="v100">Slimg 1.0.0</h2>
+    <p class="when">June 15, 2026</p>
+    <ul>
+      <li><b>First release.</b> Slimg makes JPEG, PNG and GIF files smaller without changing a single pixel, and never makes a file larger.</li>
+      <li><b>JPEG.</b> Removes camera, XMP, Photoshop and IPTC data and comments. The picture data is copied byte for byte, and the color profile stays.</li>
+      <li><b>PNG.</b> Removes text, timestamp and EXIF chunks, and recompresses the image data with the same pixels.</li>
+      <li><b>GIF.</b> Removes comments and extra application data. Frames, timing and looping stay as they were.</li>
+      <li><b>The app.</b> Drag in files or whole folders, see the savings on each file, and open a report of everything that was removed. Originals are kept as name.bak.ext.</li>
+      <li><b>The command-line tool.</b> <code>slimg</code> with <code>--dry-run</code>, <code>--backup</code>, <code>--report</code>, <code>--keep-metadata</code>, <code>--strip-color</code> and <code>--no-recompress</code>.</li>
+    </ul>
+  </section>
+</main>

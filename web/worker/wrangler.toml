@@ -1,0 +1,19 @@
+name = "slimg-site"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+routes = [{ pattern = "slimg.app", custom_domain = true }]
+
+[assets]
+directory = "../site"
+binding = "ASSETS"
+run_worker_first = ["/contact", "/download/*", "/source", "/license"]
+
+[[send_email]]
+name = "CONTACT"
+
+[[ratelimits]]
+name = "LIMITER"
+# Unique per Ladrillo site. 75464 spells "slimg" on a phone keypad; check no
+# other studio site uses it (web/README.md).
+namespace_id = "75464"
+simple = { limit = 5, period = 60 }
