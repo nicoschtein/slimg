@@ -33,7 +33,7 @@ jobs:
 
       # Cache SwiftPM build products and the package cache keyed on the manifest.
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .build
