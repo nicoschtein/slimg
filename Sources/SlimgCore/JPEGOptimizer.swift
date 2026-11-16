@@ -7,11 +7,19 @@
 ///   - APP2 when it carries an ICC profile (unless color profile stripping is on).
 ///   - DQT/DHT/SOF/SOS/DRI and all coding tables and scan data.
 /// Markers we drop when `stripMetadata` is set:
-///   - APP1 (EXIF/XMP), APP3..APP13, APP15 and COM comments.
+///   - APP1 (EXIF/XMP), APP3..APP13, APP15 and COM comments, wherever they
+///     appear: before the first scan or between the scans of a progressive
+///     JPEG.
 ///   - Exception: an EXIF APP1 whose Orientation is not 1, or that marks the
 ///     image as Adobe RGB (1998) without an embedded ICC profile, is replaced
 ///     by a minimal EXIF segment carrying only those tags, so the photo is
 ///     still displayed the way it was shot.
+///   - Everything after the end-of-image marker: extra images indexed by MPF
+///     (APP2, which is dropped too) such as HDR gain maps and depth maps,
+///     motion photo videos, and any other appended data. Each carries its own
+///     metadata, and nothing that decodes the main image reads it.
+/// Scan data (entropy-coded segments, restart markers included) is copied
+/// byte for byte.
 enum JPEGOptimizer {
     static func optimize(_ data: [UInt8], options: OptimizationOptions) -> OptimizerOutput? {
         let stripped = stripMetadata(data, options: options)
@@ -46,14 +54,23 @@ enum JPEGOptimizer {
         // Only needed once an EXIF segment turns up.
         lazy var keepEXIFColorSpace = options.keepColorProfile && !hasICCProfile(data)
 
+        var sawScan = false
         var i = 2
         while i < n {
-            guard data[i] == 0xFF else { return nil } // expected a marker
+            // After a scan, anything this loop can't follow is copied as is
+            // rather than giving up on the whole file.
+            guard data[i] == 0xFF else { // expected a marker
+                if sawScan { out.append(contentsOf: data[i..<n]); break }
+                return nil
+            }
 
             // Skip any 0xFF fill bytes; the marker is the last 0xFF + code.
             var j = i
             while j < n, data[j] == 0xFF { j += 1 }
-            guard j < n else { return nil }
+            guard j < n else {
+                if sawScan { out.append(contentsOf: data[i..<n]); break }
+                return nil
+            }
             let marker = data[j]
             let markerStart = j - 1
 
@@ -65,28 +82,54 @@ enum JPEGOptimizer {
                 continue
             }
 
-            // End of image before any scan (unusual, but copy it and stop).
+            // End of image. Anything after it is not part of this image.
             if marker == 0xD9 {
+                // No image data at all: not a photo we understand.
+                guard sawScan else { return nil }
                 out.append(0xFF)
                 out.append(0xD9)
+                let trailing = j + 1
+                if trailing < n {
+                    if options.stripMetadata {
+                        items.append(RemovedItem(kind: .appData, label: trailingDataLabel(data, from: trailing),
+                                                 bytes: n - trailing))
+                    } else {
+                        out.append(contentsOf: data[trailing..<n])
+                    }
+                }
                 break
             }
 
-            // Start of scan: the entropy-coded data follows and runs to the
-            // end of the image. Copy everything from here verbatim — this is
-            // what guarantees losslessness.
+            // Start of scan: copy the scan header and the entropy-coded data
+            // after it verbatim, up to the next marker. Scan bytes are never
+            // touched; this is what guarantees losslessness. Markers after a
+            // scan (more scans, tables, metadata, end of image) go through
+            // this loop like the ones before it.
             if marker == 0xDA {
-                out.append(contentsOf: data[markerStart..<n])
-                break
+                guard j + 2 < n else {
+                    out.append(contentsOf: data[markerStart..<n]) // truncated: keep as is
+                    break
+                }
+                let len = (Int(data[j + 1]) << 8) | Int(data[j + 2])
+                guard len >= 2, j + 1 + len <= n else {
+                    out.append(contentsOf: data[markerStart..<n])
+                    break
+                }
+                sawScan = true
+                let scanEnd = entropyCodedEnd(data, from: j + 1 + len)
+                out.append(contentsOf: data[markerStart..<scanEnd])
+                i = scanEnd
+                continue
             }
 
             // Length-prefixed segment.
-            guard j + 2 < n else { return nil }
-            let len = (Int(data[j + 1]) << 8) | Int(data[j + 2])
-            guard len >= 2 else { return nil }
+            let len = j + 2 < n ? (Int(data[j + 1]) << 8) | Int(data[j + 2]) : 0
             let payloadStart = j + 3
             let segEnd = j + 1 + len // one past the segment
-            guard segEnd <= n else { return nil }
+            guard len >= 2, segEnd <= n else {
+                if sawScan { out.append(contentsOf: data[markerStart..<n]); break }
+                return nil
+            }
 
             switch classify(marker: marker, data: data, payloadStart: payloadStart, payloadEnd: segEnd,
                             options: options, keepEXIFColorSpace: marker == 0xE1 && keepEXIFColorSpace) {
@@ -107,6 +150,52 @@ enum JPEGOptimizer {
         }
 
         return OptimizerOutput(bytes: out, items: items)
+    }
+
+    /// The index where the entropy-coded data starting at `start` ends: the
+    /// 0xFF of the next marker (or of the fill bytes before it), or
+    /// `data.count` when the data runs to the end of the file. Inside a scan,
+    /// a 0xFF data byte is always followed by a stuffed 0x00, and restart
+    /// markers (RST0-RST7) belong to the scan.
+    static func entropyCodedEnd(_ data: [UInt8], from start: Int) -> Int {
+        let n = data.count
+        var k = start
+        while k + 1 < n {
+            if data[k] == 0xFF {
+                let next = data[k + 1]
+                if next == 0x00 || (0xD0...0xD7).contains(next) {
+                    k += 2
+                    continue
+                }
+                return k
+            }
+            k += 1
+        }
+        return n
+    }
+
+    /// Report label for the bytes after the end-of-image marker.
+    static func trailingDataLabel(_ d: [UInt8], from start: Int) -> String {
+        let n = d.count
+        if start + 2 < n, d[start] == 0xFF, d[start + 1] == 0xD8, d[start + 2] == 0xFF {
+            return "Embedded image after end of image"
+        }
+        // An MP4/MOV starts with a box whose type is "ftyp"; motion photos may
+        // put a short header (such as Samsung's "MotionPhoto_Data") before it.
+        let window = Array(d[start..<min(n, start + 64)])
+        if contains(Array("ftyp".utf8), in: window) {
+            return "Embedded video after end of image (motion photo)"
+        }
+        return "Data after end of image"
+    }
+
+    private static func contains(_ needle: [UInt8], in haystack: [UInt8]) -> Bool {
+        guard haystack.count >= needle.count else { return false }
+        for offset in 0...(haystack.count - needle.count)
+        where haystack[offset..<(offset + needle.count)].elementsEqual(needle) {
+            return true
+        }
+        return false
     }
 
     private enum SegmentAction {
