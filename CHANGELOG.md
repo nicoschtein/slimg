@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **JPEG metadata stripping now reaches past the image header.** Before, the
+  stripper copied everything from the first scan to the end of the file as is,
+  so some photos kept metadata, location included:
+  - Data appended after the end of the image is removed: extra images indexed
+    by MPF (HDR gain maps, depth maps; their MPF index was already removed),
+    motion photo videos and anything else, each with its own EXIF. The report
+    lists it as "Embedded image after end of image", "Embedded video after end
+    of image (motion photo)" or "Data after end of image". It is kept when
+    metadata is kept.
+  - EXIF, XMP, IPTC, comments and other application segments between the scans
+    of a progressive JPEG, or just before its end, are removed like the ones
+    in the header.
+  - The main image's scan data is still copied byte for byte, so its pixels
+    are unchanged. Photos that had data appended can now also get the optional
+    Huffman and progressive recoding, which skipped them before.
+
 ## [1.1.1] - 2026-11-11
 
 ### Changed
